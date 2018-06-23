@@ -1,3 +1,3 @@
-# Kajiki - SushiChain cross platform wallet GUI
+# Kajiki - SushiChain cross platform GUI wallet
 
 * coming soon
