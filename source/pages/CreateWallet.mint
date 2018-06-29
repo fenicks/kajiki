@@ -2,13 +2,14 @@ record State {
   name : String,
   password : String,
   repeatPassword : String,
-  passwordStrength : Maybe(Result(PasswordStrength.Error, PasswordStrength))
+  passwordStrength : PasswordStrength,
+  error : String
 }
 
 record PasswordStrength {
   score : Number,
   warning : String,
-  suggestion : String
+  suggestions : Array(String)
 }
 
 enum PasswordStrength.Error {
@@ -21,7 +22,8 @@ component CreateWallet {
     name = "",
     password = "",
     repeatPassword = "",
-    passwordStrength = Maybe.nothing()
+    passwordStrength = {score = -1, warning = "", suggestions = []},
+    error = ""
     }
 
   style spacer {
@@ -41,7 +43,7 @@ component CreateWallet {
     (() => {
       try {
         var result = zxcvbn(password);
-        return new Ok(new Record({score: result.score, result.feedback.warning, result.feedback.suggestion}))
+        return new Ok(new Record({score: result.score, warning: result.feedback.warning, suggestions: result.feedback.suggestions}))
       } catch (e) {
         return new Err($PasswordStrength_Error_PasswordStrengthError)
       }
@@ -50,9 +52,19 @@ component CreateWallet {
   }
 
   fun onPassword(event : Html.Event) : Void {
-    do {
+    try {
       password = Dom.getValue(event.target)
-      next { state | password = password, passwordStrength = Maybe.just(getPasswordStrength(password)) }
+      strength = getPasswordStrength(password)
+
+      if(String.isEmpty(password)){
+        next { state | password = password, passwordStrength = {score = -1, warning = "", suggestions = []} }
+      } else {
+
+        next { state | password = password, passwordStrength = strength }
+      }
+
+    } catch PasswordStrength.Error => error {
+       next { state | error = "Password strength checking error", passwordStrength = {score = -1, warning = "", suggestions = []}}
     }
   }
 
@@ -66,12 +78,13 @@ component CreateWallet {
 
   get showPasswordStrength : Html {
     try {
+
       strength = state.passwordStrength
       score = Number.toString(strength.score)
       warning = strength.warning
-      suggestion = strength.suggestion
+      suggestions = strength.suggestions
 
-      if(Result.isOk(state.passwordStrength)){
+      if(strength.score == -1){
         <div/>
       } else {
         <div::height>
