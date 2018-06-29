@@ -12,6 +12,11 @@ record PasswordStrength {
   suggestions : Array(String)
 }
 
+record ScoreInfo {
+  text : String,
+  colour : String
+}
+
 enum PasswordStrength.Error {
   PasswordStrengthError
 }
@@ -76,6 +81,17 @@ component CreateWallet {
     void
   }
 
+  fun scoreText(score : Number) : ScoreInfo {
+    case (score) {
+  0 => {text = "Worst", colour = "danger"}
+  1 => {text = "Bad", colour = "danger"}
+  2 => {text = "Weak", colour = "warning"}
+  3 => {text = "Good", colour = "success"}
+  4 => {text = "Strong", colour = "success"}
+  => {text = "Worst", colour = "danger"}
+}
+  }
+
   get showPasswordStrength : Html {
     try {
 
@@ -89,7 +105,7 @@ component CreateWallet {
       } else {
         <div::height>
         <div class="alert alert-danger">
-         <{"strength: " + score}>
+         <{scoreText(strength.score)}>
         </div>
         </div>
       }
