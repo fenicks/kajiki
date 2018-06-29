@@ -1,19 +1,35 @@
 component Main {
-  style base {
-    font-family: sans;
-    font-weight: bold;
-    font-size: 50px;
+  connect Application exposing { page, setPage }
 
-    justify-content: center;
-    align-items: center;
-    display: flex;
-    height: 100vh;
-    width: 100vw;
+  get pages : Array(Ui.Pager.Item) {
+    [
+      {
+        name = "add-wallet",
+        contents = <AddWallet/>
+      },
+      {
+        name = "create-wallet",
+        contents = <CreateWallet/>
+      },
+      {
+        name = "not_found",
+        contents =
+          <div>
+            <{ "404" }>
+          </div>
+      }
+    ]
   }
 
   fun render : Html {
-    <div::base>
-      <{ "Hello Kajiki!" }>
-    </div>
+    <Layout>
+      <{ content }>
+    </Layout>
+  } where {
+    content =
+      pages
+      |> Array.find(\item : Ui.Pager.Item => item.name == page)
+      |> Maybe.map(\item : Ui.Pager.Item => item.contents)
+      |> Maybe.withDefault(<div/>)
   }
 }
