@@ -15,11 +15,13 @@ component Dashboard {
 
   fun render : Html {
     <div class="row">
-      <div class="col-mr-2">
+      <div class="col-mr-4">
         <MyWallets wallets={wallets}/>
       </div>
 
-      <div class="col-md-9"/>
+      <div class="col-md-4">
+     <h3><{"Main tabs go here"}></h3>
+      </div>
     </div>
   }
 }

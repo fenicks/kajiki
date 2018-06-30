@@ -56,21 +56,15 @@ store WalletStore {
           \ew : EncryptedWalletWithName =>
             Object.Encode.object(
               [
-                Object.Encode.field(
-                  "name",
-                  Object.Encode.string(encWallet.name)),
-                Object.Encode.field(
-                  "source",
-                  Object.Encode.string(encWallet.source)),
+                Object.Encode.field("name", Object.Encode.string(ew.name)),
+                Object.Encode.field("source", Object.Encode.string(ew.source)),
                 Object.Encode.field(
                   "ciphertext",
-                  Object.Encode.string(encWallet.ciphertext)),
+                  Object.Encode.string(ew.ciphertext)),
                 Object.Encode.field(
                   "address",
-                  Object.Encode.string(encWallet.address)),
-                Object.Encode.field(
-                  "salt",
-                  Object.Encode.string(encWallet.salt))
+                  Object.Encode.string(ew.address)),
+                Object.Encode.field("salt", Object.Encode.string(ew.salt))
               ]))
 
       encodedArray =
