@@ -1,7 +1,7 @@
 store WalletStore {
-  property wallets : Array(EncryptedWallet) = []
+  property wallets : Array(EncryptedWalletWithName) = []
 
-  fun storeWallet (encWallet : EncryptedWallet) : Result(Storage.Error, Void) {
+  fun storeWallet (encWallet : EncryptedWalletWithName) : Result(Storage.Error, Void) {
     try {
       getWallets
 
@@ -13,11 +13,14 @@ store WalletStore {
     }
   }
 
-  fun storeFirstWallet (encWallet : EncryptedWallet) : Result(Storage.Error, Void) {
+  fun storeFirstWallet (encWallet : EncryptedWalletWithName) : Result(Storage.Error, Void) {
     try {
       wallet =
         Object.Encode.object(
           [
+            Object.Encode.field(
+              "name",
+              Object.Encode.string(encWallet.name)),
             Object.Encode.field(
               "source",
               Object.Encode.string(encWallet.source)),
@@ -42,7 +45,7 @@ store WalletStore {
     }
   }
 
-  fun appendWallet (encWallet : EncryptedWallet) : Result(Storage.Error, Void) {
+  fun appendWallet (encWallet : EncryptedWalletWithName) : Result(Storage.Error, Void) {
     try {
       updated =
         Array.push(encWallet, state.wallets)
@@ -50,9 +53,12 @@ store WalletStore {
       encoded =
         updated
         |> Array.map(
-          \ew : EncryptedWallet =>
+          \ew : EncryptedWalletWithName =>
             Object.Encode.object(
               [
+                Object.Encode.field(
+                  "name",
+                  Object.Encode.string(encWallet.name)),
                 Object.Encode.field(
                   "source",
                   Object.Encode.string(encWallet.source)),
@@ -87,7 +93,7 @@ store WalletStore {
         |> Maybe.toResult("Json Parsing Error")
 
       wallets =
-        decode object as Array(EncryptedWallet)
+        decode object as Array(EncryptedWalletWithName)
 
       next { state | wallets = wallets }
     } catch Object.Error => error {

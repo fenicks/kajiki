@@ -23,6 +23,14 @@ enum PasswordStrength.Error {
   PasswordStrengthError
 }
 
+record EncryptedWalletWithName {
+  name : String,
+  source : String,
+  ciphertext : String,
+  address : String,
+  salt : String
+}
+
 component CreateWallet {
 
   connect WalletStore exposing {getWallets, storeWallet}
@@ -104,7 +112,9 @@ component CreateWallet {
       wallet = Sushi.Wallet.generateNewWallet(Network.Prefix.testNet())
       encrypted = Sushi.Wallet.encryptWallet(wallet, state.password)
 
-      created = storeWallet(encrypted)
+      encryptedWithName = {name = state.name, source = encrypted.source, ciphertext = encrypted.ciphertext, address = encrypted.address, salt = encrypted.salt}
+
+      created = storeWallet(encryptedWithName)
       Debug.log(created)
       Window.navigate("dashboard")
 

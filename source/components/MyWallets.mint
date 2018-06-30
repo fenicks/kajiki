@@ -1,7 +1,7 @@
 component MyWallets {
-  property wallets : Array(EncryptedWallet) = []
+  property wallets : Array(EncryptedWalletWithName) = []
 
-fun renderWallet(wallet : EncryptedWallet) : Html {
+fun renderWallet(wallet : EncryptedWalletWithName) : Html {
   <div><{wallet.address}></div>
 }
 
