@@ -12,6 +12,10 @@ component Main {
         contents = <CreateWallet/>
       },
       {
+        name = "dashboard",
+        contents = <Dashboard/>
+      },
+      {
         name = "not_found",
         contents =
           <div>

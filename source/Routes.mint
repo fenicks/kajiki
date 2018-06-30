@@ -11,9 +11,15 @@ routes {
     }
   }
 
+  /dashboard {
+    do {
+      Application.setPage("dashboard")
+    }
+  }
+
   / {
     do {
-      Application.setPage("add-wallet")
+      Application.setPage("dashboard")
     }
   }
 

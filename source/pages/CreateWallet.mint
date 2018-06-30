@@ -25,6 +25,8 @@ enum PasswordStrength.Error {
 
 component CreateWallet {
 
+  connect WalletStore exposing {getWallets, storeWallet}
+
   state : State {
     name = "",
     password = "",
@@ -98,7 +100,19 @@ component CreateWallet {
   }
 
   fun createWallet(event : Html.Event) : Void {
-    void
+    try {
+      wallet = Sushi.Wallet.generateNewWallet(Network.Prefix.testNet())
+      encrypted = Sushi.Wallet.encryptWallet(wallet, state.password)
+
+      created = storeWallet(encrypted)
+      Debug.log(created)
+      Window.navigate("dashboard")
+
+    } catch Wallet.Error => error {
+      next { state | error = "Could not generate a new wallet"}
+    } catch Storage.Error => error {
+      next { state | error = "Could not store the new wallet"}
+    }
   }
 
   fun scoreText(score : Number) : ScoreInfo {
@@ -212,7 +226,7 @@ component CreateWallet {
   }
 
   fun render : Html {
-    <form>
+    <div>
     <fieldset>
     <legend><{"Create a wallet"}></legend>
 
@@ -248,7 +262,7 @@ component CreateWallet {
     <a class="btn btn-outline-primary" href="/"><{"Cancel"}></a><span::spacer />
     <button type="submit" class="btn btn-primary" onClick={createWallet} disabled={createButtonState}><{"Create"}></button>
     </fieldset>
-    </form>
+    </div>
   }
 
 }
