@@ -36869,7 +36869,7 @@ class $CreateWallet extends Component {
   }
 
   get checkIndicator() {
-    return ($String.isEmpty(this.state.password) && $String.isEmpty(this.state.repeatPassword) ? _createElement("div", {}) : (_compare(this.state.password, this.state.repeatPassword) ? this.checkMark.bind(this)(`success`) : ($String.isEmpty(this.state.repeatPassword) || $String.isEmpty(this.state.password) ? _createElement("div", {}) : this.checkMark.bind(this)(`danger`))))
+    return ($String.isEmpty(this.state.password) && $String.isEmpty(this.state.repeatPassword) ? _createElement("div", {}) : (_compare(this.state.password, this.state.repeatPassword) ? this.checkMark.bind(this)(`success`, `check`) : ($String.isEmpty(this.state.repeatPassword) || $String.isEmpty(this.state.password) ? _createElement("div", {}) : this.checkMark.bind(this)(`danger`, `times`))))
   }
 
   get passwordType() {
@@ -37059,14 +37059,14 @@ class $CreateWallet extends Component {
     })()
   }
 
-  checkMark(colour) {
+  checkMark(colour, icon) {
     return _createElement("div", {
       "class": `input-group-prepend`
     }, [_createElement("span", {
       "class": `input-group-text`,
       "id": `basic-addon3`
     }, [_createElement("i", {
-      "class": `fas fa-check text-` + colour
+      "class": `fas fa-` + icon + ` text-` + colour
     })])])
   }
 
