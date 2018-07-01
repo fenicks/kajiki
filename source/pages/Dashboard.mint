@@ -45,10 +45,14 @@ fun getWalletItems(wallet : EncryptedWalletWithName) : WalletItem {
         Window.navigate("add-wallet")
       } else {
         do {
-          wallets
+          walletItems = wallets
           |> Array.map(getWalletItems)
 
+          decodedWalletItems =
+             decode walletItems as Array(AddressAmountResponse)
+             |> Array.map (\w : AddressAmountResponse => )
 
+         next { state | walletItems = walletItems }
     }
       }
     }
@@ -58,7 +62,7 @@ fun getWalletItems(wallet : EncryptedWalletWithName) : WalletItem {
     <div class="row">
       <div class="col-mr-4">
       <br/>
-        <MyWallets wallets={wallets}/>
+        <MyWallets wallets={state.walletItems}/>
       </div>
 
       <div class="col-md-4">
