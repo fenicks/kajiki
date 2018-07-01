@@ -36712,7 +36712,7 @@ class $Dashboard extends Component {
       try {
         let response = await (async ()=> {
       try {
-        return await $Http.send($Http.get(`https://testnet.sushichain.io:3000/api/v1/address/` + w.address + `/token/SUSHI`))
+        return await $Http.send($Http.get(`https://testnet.sushichain.io:3443/api/v1/address/` + w.address + `/token/SUSHI`))
       } catch(_error) {
         let error = _error;
      new Promise((_resolve) => {
