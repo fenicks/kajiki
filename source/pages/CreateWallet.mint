@@ -181,9 +181,9 @@ component CreateWallet {
     (String.isEmpty(state.name) || String.isEmpty(state.password) || String.isEmpty(state.repeatPassword)) || (state.password != state.repeatPassword)
   }
 
-  fun checkMark(colour : String) : Html {
+  fun checkMark(colour : String, icon : String) : Html {
     <div class="input-group-prepend">
-      <span class="input-group-text" id="basic-addon3"><i class={"fas fa-check text-" + colour}></i></span>
+      <span class="input-group-text" id="basic-addon3"><i class={"fas fa-" + icon + " text-" + colour}></i></span>
     </div>
   }
 
@@ -192,12 +192,12 @@ component CreateWallet {
       <div/>
     } else {
       if(state.password == state.repeatPassword){
-        checkMark("success")
+        checkMark("success", "check")
      } else {
        if(String.isEmpty(state.repeatPassword) || String.isEmpty(state.password)){
           <div/>
        } else {
-         checkMark("danger")
+         checkMark("danger", "times")
        }
      }
    }

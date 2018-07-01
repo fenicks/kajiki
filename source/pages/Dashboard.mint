@@ -30,7 +30,7 @@ component Dashboard {
 
   fun getWalletBalance(w : EncryptedWalletWithName) : Void {
    do {
-     response = Http.get("http://testnet.sushichain.io:3000/api/v1/address/" + w.address + "/token/SUSHI") |> Http.send()
+     response = Http.get("https://testnet.sushichain.io:3443/api/v1/address/" + w.address + "/token/SUSHI") |> Http.send()
      json = Json.parse(response.body)
             |> Maybe.toResult("Json paring error")
 
