@@ -25,7 +25,8 @@ record Dashboard.State {
 }
 
 component Dashboard {
-  connect WalletStore exposing { getWallets, wallets }
+  connect WalletStore exposing { getWallets, wallets, appendWalletItem, setError }
+  connect CurrentWalletStore exposing { setCurrent, getCurrent }
 
   state : Dashboard.State {
     error = "",
@@ -71,7 +72,7 @@ component Dashboard {
     }
   }
 
-  fun getWalletItems (wallets : Array(EncryptedWalletWithName)) : Array(Void) {
+  fun getWalletItems () : Array(Void) {
     wallets
     |> Array.map(getWalletBalance)
   }
@@ -87,7 +88,7 @@ component Dashboard {
         }
       } else {
         try {
-          getWalletItems(wallets)
+          getWalletItems()
           void
         }
       }

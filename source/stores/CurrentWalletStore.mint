@@ -1,11 +1,11 @@
 store CurrentWalletStore {
-  property currentWallet : Maybe(WalletItem) = Maybe.nothing()
+  property currentWallet : Maybe(String) = Maybe.nothing()
 
-  fun setCurrent(wallet : WalletItem) : Void {
+  fun setCurrent(wallet : String) : Void {
     next {state | currentWallet = Maybe.just(wallet)}
   }
 
-  fun getCurrent : Maybe(WalletItem) {
+  fun getCurrent : Maybe(String) {
     state.currentWallet
   }
 }

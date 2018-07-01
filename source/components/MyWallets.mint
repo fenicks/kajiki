@@ -1,14 +1,23 @@
 component MyWallets {
   property wallets : Array(WalletItem) = []
 
+    connect CurrentWalletStore exposing { setCurrent, getCurrent }
 
 fun renderWallet(wallet : WalletItem) : Html {
-  <a href="#" class="list-group-item list-group-item-action">
+    <a onClick={\event : Html.Event => setCurrent(wallet.address)} href="" class={"list-group-item list-group-item-action" + active}>
     <div>
     <strong><{wallet.name}></strong><br/>
     <span><i class="fas fa-dollar-sign text-muted"></i><{wallet.balance}></span>
     </div>
-  </a>
+    </a>
+} where {
+  first = Array.firstWithDefault({name="",balance="",address=""}, wallets)
+  activeAddress = Maybe.withDefault(first.address, getCurrent())
+  active = if (activeAddress == wallet.address) {
+    " active"
+  } else {
+    ""
+  }
 }
 
  fun render : Html {

@@ -1,5 +1,15 @@
 store WalletStore {
   property wallets : Array(EncryptedWalletWithName) = []
+  property walletItems : Array(WalletItem) = []
+  property error : String = ""
+
+  fun appendWalletItem(item : WalletItem) : Void {
+    next { state | walletItems = state.walletItems |> Array.push(item)}
+  }
+
+  fun setError(error : String) : Void {
+    next { state | error = error }
+  }
 
   fun storeWallet (encWallet : EncryptedWalletWithName) : Result(Storage.Error, Void) {
     try {
