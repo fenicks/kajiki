@@ -1,12 +1,12 @@
 component MyWallets {
-  property wallets : Array(EncryptedWalletWithName) = []
+  property wallets : Array(WalletItem) = []
 
 
-fun renderWallet(wallet : EncryptedWalletWithName) : Html {
+fun renderWallet(wallet : WalletItem) : Html {
   <a href="#" class="list-group-item list-group-item-action">
     <div>
     <strong><{wallet.name}></strong><br/>
-    <span><i class="fas fa-dollar-sign text-muted"></i><{" 0.1234"}></span>
+    <span><i class="fas fa-dollar-sign text-muted"></i><{wallet.balance}></span>
     </div>
   </a>
 }

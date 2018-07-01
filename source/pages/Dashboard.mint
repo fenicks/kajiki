@@ -19,41 +19,57 @@ record AddressAmountResponse {
 }
 
 record Dashboard.State {
+  error : String,
   walletItems : Array(WalletItem)
 }
 
 component Dashboard {
   connect WalletStore exposing { getWallets, wallets }
 
-  state : Dashboard.State {
-      walletItems = []
-    }
+  state : Dashboard.State {error = "", walletItems = []}
 
-fun getWalletItems(wallet : EncryptedWalletWithName) : WalletItem {
-  try {
-  response = Http.get("http://testnet.sushichain.io:3000/api/v1/address/" + wallet.address + "/token/SUSHI") |> Http.send()
+  fun getWalletBalance(w : EncryptedWalletWithName) : Void {
+   do {
+     response = Http.get("http://testnet.sushichain.io:3000/api/v1/address/" + w.address + "/token/SUSHI") |> Http.send()
+     json = Json.parse(response.body)
+            |> Maybe.toResult("Json paring error")
 
-    {name = wallet.name, balance = "0.1234"}
+      item = decode json as AddressAmountResponse
+
+      balance = Array.firstWithDefault({token = "SUSHI", amount = "0"}, item.result.pairs)
+
+      walletInfo = {name = w.name, balance = balance.amount}
+
+      next { state | walletItems = Array.push(walletInfo, state.walletItems)}
+
+   } catch Http.ErrorResponse => error {
+      next { state | error = "Could not retrieve remote wallet information"}
+   } catch String => error {
+     next { state  | error = "Could not parse json response"}
+   } catch Object.Error => error {
+     next { state | error = "could not decode json"}
+   }
   }
-}
+
+  fun getWalletItems (wallets : Array(EncryptedWalletWithName)) : Array(Void) {
+      wallets
+      |> Array.map(getWalletBalance)
+  }
 
   fun componentDidMount : Void {
     try {
       getWallets
 
       if (Array.isEmpty(wallets)) {
+        try {
         Window.navigate("add-wallet")
+        void
+      }
       } else {
-        do {
-          walletItems = wallets
-          |> Array.map(getWalletItems)
-
-          decodedWalletItems =
-             decode walletItems as Array(AddressAmountResponse)
-             |> Array.map (\w : AddressAmountResponse => )
-
-         next { state | walletItems = walletItems }
-    }
+        try {
+        getWalletItems(wallets)
+        void
+      }
       }
     }
   }
@@ -61,13 +77,16 @@ fun getWalletItems(wallet : EncryptedWalletWithName) : WalletItem {
   fun render : Html {
     <div class="row">
       <div class="col-mr-4">
-      <br/>
+        <br/>
         <MyWallets wallets={state.walletItems}/>
       </div>
 
       <div class="col-md-4">
-      <br/>
-     <h3><{"Main tabs go here"}></h3>
+        <br/>
+
+        <h3>
+          <{ "Main tabs go here" }>
+        </h3>
       </div>
     </div>
   }
