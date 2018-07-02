@@ -19,26 +19,67 @@ record AddressAmountResponse {
   status : String
 }
 
+record CurrentWallet {
+  wallet : EncryptedWalletWithName,
+  balances : Array(TokenPair)
+}
+
 store WalletStore {
   property wallets : Array(EncryptedWalletWithName) = []
   property walletItems : Array(WalletItem) = []
   property error : String = ""
   property currentWalletAddress : String = ""
+  property currentWallet : Maybe(CurrentWallet) = Maybe.nothing()
 
   fun setCurrentAddress(address : String) : Void {
     next {state | currentWalletAddress = address}
   }
 
-  fun getCurrentAddress : String {
+  get getCurrentAddress : String {
     state.currentWalletAddress
   }
 
-  fun getCurrentWallet : CurrentWallet {
+  get emptyEncryptedWalletWithName : EncryptedWalletWithName {
+    {name = "",
+    source = "",
+    ciphertext = "",
+    address = "",
+    salt = ""}
+  }
+
+  get getCurrentWallet : Void {
     do {
       response =
         Http.get(
-          "https://testnet.sushichain.io:3443/api/v1/address/" + w.address)
+          "https://testnet.sushichain.io:3443/api/v1/address/" + currentWalletAddress)
         |> Http.send()
+
+        json =
+          Json.parse(response.body)
+          |> Maybe.toResult("Json paring error")
+
+        item =
+          decode json as AddressAmountResponse
+
+        balances = item.result.pairs
+
+        wallet = wallets
+                 |> Array.find(\w : EncryptedWalletWithName => w.address == currentWalletAddress)
+                 |> Maybe.withDefault(emptyEncryptedWalletWithName)
+
+       cw = {
+         wallet = wallet,
+         balances = balances
+       }
+
+      next { state | currentWallet = Maybe.just(cw)}
+
+    } catch Http.ErrorResponse => error {
+      next { state | error = "Could not retrieve remote wallet information" }
+    } catch String => error {
+      next { state | error = "Could not parse json response" }
+    } catch Object.Error => error {
+      next { state | error = "could not decode json" }
     }
   }
 

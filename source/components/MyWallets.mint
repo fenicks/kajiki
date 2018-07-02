@@ -1,12 +1,13 @@
 component MyWallets {
   property wallets : Array(WalletItem) = []
 
-    connect WalletStore exposing { refreshWalletItems, setCurrentAddress, getCurrentAddress }
+    connect WalletStore exposing { refreshWalletItems, setCurrentAddress, getCurrentAddress, getCurrentWallet }
 
 fun setCurrent(wallet : WalletItem,event : Html.Event) : Void {
   try {
     setCurrentAddress(wallet.address)
     refreshWalletItems
+            getCurrentWallet
   }
 }
 
@@ -19,8 +20,7 @@ fun renderWallet(wallet : WalletItem) : Html {
     </a>
 } where {
   first = Array.firstWithDefault({name="",balance="",address=""}, wallets)
-  activeAddress = Maybe.withDefault(first.address, getCurrentAddress())
-  active = if (activeAddress == wallet.address) {
+  active = if (getCurrentAddress == wallet.address) {
     " active"
   } else {
     ""

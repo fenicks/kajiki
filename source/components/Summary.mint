@@ -1,8 +1,5 @@
 component Summary {
-
-  connect WalletStore exposing { getCurrentWallet }
-
-
+  property currentWallet : Maybe(CurrentWallet) = Maybe.nothing()
 
 fun render : Html {
   <div class="card text-white bg-primary mb-3">
@@ -13,8 +10,7 @@ fun render : Html {
   </div>
 </div>
 } where {
-  current = getCurrentWallet()
-  name = current |> Maybe.map(\c : WalletItem => c.name) |> Maybe.withDefault("")
+  name = currentWallet |> Maybe.map(\c : CurrentWallet => c.wallet.name) |> Maybe.withDefault("")
 }
 
 }

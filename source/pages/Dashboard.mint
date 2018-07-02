@@ -1,5 +1,5 @@
 component Dashboard {
-  connect WalletStore exposing { getWallets, wallets, getWalletItems, walletItems }
+  connect WalletStore exposing { getWallets, wallets, getWalletItems, walletItems, getCurrentWallet, currentWallet }
 
   fun componentDidMount : Void {
     try {
@@ -11,6 +11,7 @@ component Dashboard {
       } else {
         try {
           getWalletItems
+          getCurrentWallet
         }
       }
     }
@@ -75,7 +76,7 @@ component Dashboard {
         <div>
           <br/>
 
-          <Summary/>
+          <Summary currentWallet={currentWallet}/>
         </div>
       </div>
     </div>
