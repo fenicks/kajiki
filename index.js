@@ -34410,6 +34410,102 @@ const $$AddressAmountResponse = (input) => {
   })
 }
 
+const $$Sender = (input) => {
+  let address = Decoder.field(`address`, Decoder.string)(input)
+  if (address instanceof Err) { return address }
+
+  let publicKey = Decoder.field(`publicKey`, Decoder.string)(input)
+  if (publicKey instanceof Err) { return publicKey }
+
+  let amount = Decoder.field(`amount`, Decoder.string)(input)
+  if (amount instanceof Err) { return amount }
+
+  let fee = Decoder.field(`fee`, Decoder.string)(input)
+  if (fee instanceof Err) { return fee }
+
+  let signr = Decoder.field(`signr`, Decoder.string)(input)
+  if (signr instanceof Err) { return signr }
+
+  let signs = Decoder.field(`signs`, Decoder.string)(input)
+  if (signs instanceof Err) { return signs }
+
+  return new Ok({
+    address: address.value,
+    publicKey: publicKey.value,
+    amount: amount.value,
+    fee: fee.value,
+    signr: signr.value,
+    signs: signs.value
+  })
+}
+
+const $$Recipient = (input) => {
+  let address = Decoder.field(`address`, Decoder.string)(input)
+  if (address instanceof Err) { return address }
+
+  let amount = Decoder.field(`amount`, Decoder.string)(input)
+  if (amount instanceof Err) { return amount }
+
+  return new Ok({
+    address: address.value,
+    amount: amount.value
+  })
+}
+
+const $$Transaction = (input) => {
+  let id = Decoder.field(`id`, Decoder.string)(input)
+  if (id instanceof Err) { return id }
+
+  let action = Decoder.field(`action`, Decoder.string)(input)
+  if (action instanceof Err) { return action }
+
+  let senders = Decoder.field(`senders`, Decoder.array($$Sender))(input)
+  if (senders instanceof Err) { return senders }
+
+  let recipients = Decoder.field(`recipients`, Decoder.array($$Recipient))(input)
+  if (recipients instanceof Err) { return recipients }
+
+  let message = Decoder.field(`message`, Decoder.string)(input)
+  if (message instanceof Err) { return message }
+
+  let token = Decoder.field(`token`, Decoder.string)(input)
+  if (token instanceof Err) { return token }
+
+  let prevHash = Decoder.field(`prevHash`, Decoder.string)(input)
+  if (prevHash instanceof Err) { return prevHash }
+
+  let timestamp = Decoder.field(`timestamp`, Decoder.number)(input)
+  if (timestamp instanceof Err) { return timestamp }
+
+  let scaled = Decoder.field(`scaled`, Decoder.number)(input)
+  if (scaled instanceof Err) { return scaled }
+
+  return new Ok({
+    id: id.value,
+    action: action.value,
+    senders: senders.value,
+    recipients: recipients.value,
+    message: message.value,
+    token: token.value,
+    prevHash: prevHash.value,
+    timestamp: timestamp.value,
+    scaled: scaled.value
+  })
+}
+
+const $$AddressTransactionsResponse = (input) => {
+  let result = Decoder.field(`result`, Decoder.array($$Transaction))(input)
+  if (result instanceof Err) { return result }
+
+  let status = Decoder.field(`status`, Decoder.string)(input)
+  if (status instanceof Err) { return status }
+
+  return new Ok({
+    result: result.value,
+    status: status.value
+  })
+}
+
 const $$EncryptedWalletWithName = (input) => {
   let name = Decoder.field(`name`, Decoder.string)(input)
   if (name instanceof Err) { return name }
@@ -36273,7 +36369,7 @@ const $WalletStore = new (class extends Store {
     constructor() {
     super()
     this.props = {
-        wallets: [],walletItems: [],error: ``,currentWalletAddress: $Maybe.nothing(),currentWallet: $Maybe.nothing()
+        wallets: [],walletItems: [],error: ``,currentWalletAddress: $Maybe.nothing(),currentWallet: $Maybe.nothing(),currentTransactions: []
     }
   }
 
@@ -36317,13 +36413,22 @@ const $WalletStore = new (class extends Store {
     }
   }
 
+  get currentTransactions () {
+    if (this.props.currentTransactions != undefined) {
+      return this.props.currentTransactions
+    } else {
+      return []
+    }
+  }
+
   get state () {
     return {
     wallets: this.wallets,
     walletItems: this.walletItems,
     error: this.error,
     currentWalletAddress: this.currentWalletAddress,
-    currentWallet: this.currentWallet
+    currentWallet: this.currentWallet,
+    currentTransactions: this.currentTransactions
     }
   }
 
@@ -36349,6 +36454,70 @@ const $WalletStore = new (class extends Store {
     }), this.walletItems)
 
     return $Maybe.withDefault(first.address, this.getCurrentAddress) })()
+  }
+
+  get getCurrentTransactions() {
+    return (async () => {
+      try {
+        let response = await (async ()=> {
+      try {
+        return await $Http.send($Http.get(`https://testnet.sushichain.io:3443/api/v1/address/` + this.currentWalletAddressOrFirst + `/transactions`))
+      } catch(_error) {
+        let error = _error;
+     new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: `Could not retrieve wallet transactions` }), _resolve)
+    })
+
+        throw new DoError
+      }
+    })()
+
+    let _1 = $Maybe.toResult(`Json paring error`, $Json.parse(response.body))
+
+    if (_1 instanceof Err) {
+      let _error = _1.value
+
+      let error = _error;
+     new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: `Could not parse json response` }), _resolve)
+    })
+
+      throw new DoError
+    }
+
+    let json = _1.value
+
+     await $Debug.log(json)
+
+    let _3 = $$AddressTransactionsResponse(json)
+
+    if (_3 instanceof Err) {
+      let _error = _3.value
+
+      let error = _error;
+     new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: `could not decode json` }), _resolve)
+    })
+
+      throw new DoError
+    }
+
+    let item = _3.value
+
+     await $Debug.log(item.result)
+
+     await new Promise((_resolve) => {
+      this.setState(_update(this.state, { currentTransactions: item.result }), _resolve)
+    })
+      }
+      catch(_error) {
+        if (_error instanceof DoError) {
+        } else {
+          console.warn(`Unhandled error in do statement`)
+          console.log(_error)
+        }
+      } 
+    })()
   }
 
   get getCurrentWallet() {
@@ -36602,7 +36771,7 @@ const $WalletStore = new (class extends Store {
   }
 
   storeFirstWallet(encWallet) {
-    return (() => { let wallet = $Object_Encode.object([$Object_Encode.field(`name`, $Object_Encode.string(encWallet.name)), $Object_Encode.field(`source`, $Object_Encode.string(encWallet.source)), $Object_Encode.field(`ciphertext`, $Object_Encode.string(encWallet.ciphertext)), $Object_Encode.field(`address`, $Object_Encode.string(encWallet.address)), $Object_Encode.field(`salt`, $Object_Encode.string(encWallet.salt))])
+    return (() => { let wallet = _encode(encWallet)
 
     let encodedArray = $Object_Encode.array([wallet])
 
@@ -36615,7 +36784,7 @@ const $WalletStore = new (class extends Store {
     return (() => { let updated = $Array.push(encWallet, this.state.wallets)
 
     let encoded = $Array.map(((ew) => {
-    return $Object_Encode.object([$Object_Encode.field(`name`, $Object_Encode.string(ew.name)), $Object_Encode.field(`source`, $Object_Encode.string(ew.source)), $Object_Encode.field(`ciphertext`, $Object_Encode.string(ew.ciphertext)), $Object_Encode.field(`address`, $Object_Encode.string(ew.address)), $Object_Encode.field(`salt`, $Object_Encode.string(ew.salt))])
+    return _encode(ew)
     }), updated)
 
     let encodedArray = $Object_Encode.array(encoded)
@@ -36906,6 +37075,8 @@ class $MyWallets extends Component {
 
   get currentWalletAddressOrFirst () { return $WalletStore.currentWalletAddressOrFirst }
 
+  get getCurrentTransactions () { return $WalletStore.getCurrentTransactions }
+
   componentWillUnmount () {
     $WalletStore._unsubscribe(this)
   }
@@ -36919,7 +37090,9 @@ class $MyWallets extends Component {
 
      this.refreshWalletItems
 
-    return this.getCurrentWallet })()
+     this.getCurrentWallet
+
+    return this.getCurrentTransactions })()
   }
 
   renderWallet(wallet) {
@@ -36951,12 +37124,15 @@ class $MyWallets extends Component {
       className: `card-header`
     }, [`My Wallets`]), _createElement("ul", {
       className: `list-group list-group-flush`
-    }, [$Array.map(this.renderWallet.bind(this), this.wallets), _createElement("a", {
-      "href": `/add-wallet`,
-      className: `list-group-item list-group-item-action`
-    }, [`Add wallet`])]), _createElement("div", {
+    }, [$Array.map(this.renderWallet.bind(this), this.wallets)]), _createElement("div", {
       className: `card-footer text-muted`
-    }, [`2 days`])])
+    }, [_createElement("ul", {
+      className: `list-group list-group-flush`
+    }, [_createElement("a", {
+      "href": `/add-wallet`
+    }, [_createElement("i", {
+      className: `fas fa-plus`
+    }), ` Add wallet`])])])])
   }
 }
 
@@ -36977,12 +37153,18 @@ class $Summary extends Component {
 
   get getCurrentAddress () { return $WalletStore.getCurrentAddress }
 
+  get getCurrentTransactions () { return $WalletStore.getCurrentTransactions }
+
+  get currentTransactions () { return $WalletStore.currentTransactions }
+
   componentWillUnmount () {
     $WalletStore._unsubscribe(this)
   }
 
   componentDidUpdate() {
-    return (() => { return ($Maybe.isNothing(this.currentWallet) && !$Array.isEmpty(this.walletItems) ? this.getCurrentWallet : null) })()
+    return (() => { return ($Maybe.isNothing(this.currentWallet) && !$Array.isEmpty(this.walletItems) ? (() => {  this.getCurrentWallet
+
+    return this.getCurrentTransactions })() : null) })()
   }
 
   componentDidMount () {
@@ -36998,13 +37180,35 @@ class $Summary extends Component {
     return c.balances
     }), this.currentWallet))
 
-    return _createElement("div", {
+    return _createElement("div", {}, [_createElement("div", {
       className: `card text-white bg-primary mb-3`
     }, [_createElement("div", {
       className: `card-header`
     }, [name]), _createElement("div", {
       className: `card-body`
-    }, [this.renderSushiBalance.bind(this)(balances), _createElement("p", {
+    }, [this.renderSushiBalance.bind(this)(balances), this.renderTokenBalances.bind(this)(balances)])]), $Array.map(this.renderTransaction.bind(this), this.currentTransactions)])
+  }
+
+  renderTransaction(transaction) {
+    return _createElement("div", {
+      className: `card`
+    }, [_createElement("div", {
+      className: `card-body`
+    }, [_createElement("h4", {
+      className: `card-title`
+    }, [`Card Title`]), _createElement("h6", {
+      className: `card-subtitle mb-2 text-muted`
+    }, [`more info`])])])
+  }
+
+  renderTokenBalances(balances) {
+    let tokenBalances = $Array.reject(((i) => {
+    return _compare(i.token, `SUSHI`)
+    }), balances)
+
+    return ($Array.isEmpty(tokenBalances) ? _createElement("p", {
+      className: `card-text`
+    }, [`You have no custom tokens`]) : _createElement("p", {
       className: `card-text`
     }, [_createElement("br", {}), _createElement("table", {
       className: `table table-hover`
@@ -37012,7 +37216,7 @@ class $Summary extends Component {
       "scope": `col`
     }, [`Token`]), _createElement("th", {
       "scope": `col`
-    }, [`Balance`])])]), _createElement("tbody", {}, [this.renderBalances.bind(this)(balances)])])])])])
+    }, [`Balance`])])]), _createElement("tbody", {}, [this.renderBalances.bind(this)(balances)])])]))
   }
 
   renderBalances(pairs) {
@@ -37026,7 +37230,11 @@ class $Summary extends Component {
       className: `table-default`
     }, [_createElement("th", {
       "scope": `row`
-    }, [pair.token]), _createElement("td", {}, [pair.amount])])
+    }, [pair.token]), _createElement("td", {}, [this.toBalance.bind(this)(pair.amount)])])
+  }
+
+  toBalance(value) {
+    return $Number.toString(($Maybe.withDefault(0, $Number.fromString(value))) / 100000000)
   }
 
   renderSushiBalance(pairs) {
