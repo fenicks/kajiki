@@ -1,14 +1,79 @@
+record WalletItem {
+  name : String,
+  balance : String,
+  address : String
+}
+
+record TokenPair {
+  token : String,
+  amount : String
+}
+
+record AddressAmount {
+  confirmation : Number,
+  pairs : Array(TokenPair)
+}
+
+record AddressAmountResponse {
+  result : AddressAmount,
+  status : String
+}
+
 store WalletStore {
   property wallets : Array(EncryptedWalletWithName) = []
   property walletItems : Array(WalletItem) = []
   property error : String = ""
 
-  fun appendWalletItem(item : WalletItem) : Void {
-    next { state | walletItems = state.walletItems |> Array.push(item)}
+  fun getWalletBalance (w : EncryptedWalletWithName) : Void {
+    do {
+      response =
+        Http.get(
+          "https://testnet.sushichain.io:3443/api/v1/address/" + w.address + "/token/SUSHI")
+        |> Http.send()
+
+      json =
+        Json.parse(response.body)
+        |> Maybe.toResult("Json paring error")
+
+      item =
+        decode json as AddressAmountResponse
+
+      balance =
+        Array.firstWithDefault(
+          {
+            token = "SUSHI",
+            amount = "0"
+          },
+          item.result.pairs)
+
+      walletInfo =
+        {
+          name = w.name,
+          balance = balance.amount,
+          address = w.address
+        }
+
+      next { state | walletItems = Array.push(walletInfo, state.walletItems) |> Array. }
+    } catch Http.ErrorResponse => error {
+      next { state | error = "Could not retrieve remote wallet information" }
+    } catch String => error {
+      next { state | error = "Could not parse json response" }
+    } catch Object.Error => error {
+      next { state | error = "could not decode json" }
+    }
   }
 
-  fun setError(error : String) : Void {
-    next { state | error = error }
+  fun replaceItem(w : WalletInfo) : Array(WalletItem) {
+    try {
+      Array.find(\i : WalletInfo => i.address == w.address, state.walletItems)
+    }
+  }
+
+  get getWalletItems : Void {
+    do {
+      wallets
+      |> Array.map(getWalletBalance)
+    }
   }
 
   fun storeWallet (encWallet : EncryptedWalletWithName) : Result(Storage.Error, Void) {
@@ -20,6 +85,12 @@ store WalletStore {
       } else {
         appendWallet(encWallet)
       }
+    }
+  }
+
+  get refreshWalletItems : Void {
+    do {
+      getWalletItems
     }
   }
 

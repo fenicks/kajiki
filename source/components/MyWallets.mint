@@ -1,10 +1,18 @@
 component MyWallets {
   property wallets : Array(WalletItem) = []
 
+    connect WalletStore exposing { refreshWalletItems }
     connect CurrentWalletStore exposing { setCurrent, getCurrent }
 
+fun setCurrentWallet(wallet : WalletItem,event : Html.Event) : Void {
+  try {
+    setCurrent(wallet.address)
+    refreshWalletItems
+  }
+}
+
 fun renderWallet(wallet : WalletItem) : Html {
-    <a onClick={\event : Html.Event => setCurrent(wallet.address)} href="" class={"list-group-item list-group-item-action" + active}>
+    <a onClick={\event : Html.Event => setCurrentWallet(wallet, event)} href="" class={"list-group-item list-group-item-action" + active}>
     <div>
     <strong><{wallet.name}></strong><br/>
     <span><i class="fas fa-dollar-sign text-muted"></i><{wallet.balance}></span>
