@@ -24,12 +24,18 @@ record CurrentWallet {
   balances : Array(TokenPair)
 }
 
+record AddressTransactionsResponse {
+  result : Array(Transaction),
+  status : String
+}
+
 store WalletStore {
   property wallets : Array(EncryptedWalletWithName) = []
   property walletItems : Array(WalletItem) = []
   property error : String = ""
   property currentWalletAddress : Maybe(String) = Maybe.nothing()
   property currentWallet : Maybe(CurrentWallet) = Maybe.nothing()
+  property currentTransactions : Array(Transaction) = []
 
   fun setCurrentAddress(address : String) : Void {
     next {state | currentWalletAddress = Maybe.just(address)}
@@ -51,6 +57,35 @@ store WalletStore {
     try {
       first = Array.firstWithDefault({name="",balance="",address=""}, walletItems)
       getCurrentAddress |> Maybe.withDefault(first.address)
+    }
+  }
+
+  get getCurrentTransactions : Void {
+    do {
+    response =
+      Http.get(
+        "https://testnet.sushichain.io:3443/api/v1/address/" + currentWalletAddressOrFirst + "/transactions")
+      |> Http.send()
+
+      json =
+        Json.parse(response.body)
+        |> Maybe.toResult("Json paring error")
+
+Debug.log(json)
+
+        item =
+          decode json as AddressTransactionsResponse
+
+          Debug.log(item.result)
+
+       next { state | currentTransactions = item.result}
+
+    } catch Http.ErrorResponse => error {
+      next { state | error = "Could not retrieve wallet transactions" }
+    } catch String => error {
+      next { state | error = "Could not parse json response" }
+    } catch Object.Error => error {
+      next { state | error = "could not decode json" }
     }
   }
 
@@ -168,24 +203,7 @@ store WalletStore {
   fun storeFirstWallet (encWallet : EncryptedWalletWithName) : Result(Storage.Error, Void) {
     try {
       wallet =
-        Object.Encode.object(
-          [
-            Object.Encode.field(
-              "name",
-              Object.Encode.string(encWallet.name)),
-            Object.Encode.field(
-              "source",
-              Object.Encode.string(encWallet.source)),
-            Object.Encode.field(
-              "ciphertext",
-              Object.Encode.string(encWallet.ciphertext)),
-            Object.Encode.field(
-              "address",
-              Object.Encode.string(encWallet.address)),
-            Object.Encode.field(
-              "salt",
-              Object.Encode.string(encWallet.salt))
-          ])
+        encode encWallet
 
       encodedArray =
         Object.Encode.array([wallet])
@@ -205,19 +223,7 @@ store WalletStore {
       encoded =
         updated
         |> Array.map(
-          \ew : EncryptedWalletWithName =>
-            Object.Encode.object(
-              [
-                Object.Encode.field("name", Object.Encode.string(ew.name)),
-                Object.Encode.field("source", Object.Encode.string(ew.source)),
-                Object.Encode.field(
-                  "ciphertext",
-                  Object.Encode.string(ew.ciphertext)),
-                Object.Encode.field(
-                  "address",
-                  Object.Encode.string(ew.address)),
-                Object.Encode.field("salt", Object.Encode.string(ew.salt))
-              ]))
+          \ew : EncryptedWalletWithName => encode ew)
 
       encodedArray =
         Object.Encode.array(encoded)
