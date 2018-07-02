@@ -28,14 +28,14 @@ store WalletStore {
   property wallets : Array(EncryptedWalletWithName) = []
   property walletItems : Array(WalletItem) = []
   property error : String = ""
-  property currentWalletAddress : String = ""
+  property currentWalletAddress : Maybe(String) = Maybe.nothing()
   property currentWallet : Maybe(CurrentWallet) = Maybe.nothing()
 
   fun setCurrentAddress(address : String) : Void {
-    next {state | currentWalletAddress = address}
+    next {state | currentWalletAddress = Maybe.just(address)}
   }
 
-  get getCurrentAddress : String {
+  get getCurrentAddress : Maybe(String) {
     state.currentWalletAddress
   }
 
@@ -47,11 +47,18 @@ store WalletStore {
     salt = ""}
   }
 
+  get currentWalletAddressOrFirst : String {
+    try {
+      first = Array.firstWithDefault({name="",balance="",address=""}, walletItems)
+      getCurrentAddress |> Maybe.withDefault(first.address)
+    }
+  }
+
   get getCurrentWallet : Void {
     do {
       response =
         Http.get(
-          "https://testnet.sushichain.io:3443/api/v1/address/" + currentWalletAddress)
+          "https://testnet.sushichain.io:3443/api/v1/address/" + currentWalletAddressOrFirst)
         |> Http.send()
 
         json =
@@ -64,7 +71,7 @@ store WalletStore {
         balances = item.result.pairs
 
         wallet = wallets
-                 |> Array.find(\w : EncryptedWalletWithName => w.address == currentWalletAddress)
+                 |> Array.find(\w : EncryptedWalletWithName => w.address == currentWalletAddressOrFirst)
                  |> Maybe.withDefault(emptyEncryptedWalletWithName)
 
        cw = {

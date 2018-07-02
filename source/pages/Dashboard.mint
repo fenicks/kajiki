@@ -11,7 +11,6 @@ component Dashboard {
       } else {
         try {
           getWalletItems
-          getCurrentWallet
         }
       }
     }
@@ -76,7 +75,7 @@ component Dashboard {
         <div>
           <br/>
 
-          <Summary currentWallet={currentWallet}/>
+          <Summary/>
         </div>
       </div>
     </div>
