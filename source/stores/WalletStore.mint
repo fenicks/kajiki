@@ -23,6 +23,24 @@ store WalletStore {
   property wallets : Array(EncryptedWalletWithName) = []
   property walletItems : Array(WalletItem) = []
   property error : String = ""
+  property currentWalletAddress : String = ""
+
+  fun setCurrentAddress(address : String) : Void {
+    next {state | currentWalletAddress = address}
+  }
+
+  fun getCurrentAddress : String {
+    state.currentWalletAddress
+  }
+
+  fun getCurrentWallet : CurrentWallet {
+    do {
+      response =
+        Http.get(
+          "https://testnet.sushichain.io:3443/api/v1/address/" + w.address)
+        |> Http.send()
+    }
+  }
 
   fun getWalletBalance (w : EncryptedWalletWithName) : Void {
     do {
@@ -53,7 +71,7 @@ store WalletStore {
           address = w.address
         }
 
-      next { state | walletItems = Array.push(walletInfo, state.walletItems) |> Array. }
+      next { state | walletItems = replaceItem(walletInfo) }
     } catch Http.ErrorResponse => error {
       next { state | error = "Could not retrieve remote wallet information" }
     } catch String => error {
@@ -63,9 +81,14 @@ store WalletStore {
     }
   }
 
-  fun replaceItem(w : WalletInfo) : Array(WalletItem) {
+  fun replaceItem(w : WalletItem) : Array(WalletItem) {
     try {
-      Array.find(\i : WalletInfo => i.address == w.address, state.walletItems)
+      exists = Array.find(\i : WalletItem => i.address == w.address, state.walletItems)
+      if(Maybe.isJust(exists)){
+        Array.map(\i : WalletItem => if(i.address == w.address){ w } else { i }, state.walletItems)
+      } else {
+        Array.push(w, state.walletItems)
+      }
     }
   }
 

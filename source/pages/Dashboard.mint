@@ -1,6 +1,5 @@
 component Dashboard {
   connect WalletStore exposing { getWallets, wallets, getWalletItems, walletItems }
-  connect CurrentWalletStore exposing { setCurrent, getCurrent }
 
   fun componentDidMount : Void {
     try {
