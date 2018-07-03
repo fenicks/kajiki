@@ -25,8 +25,35 @@ record CurrentWallet {
 }
 
 record AddressTransactionsResponse {
-  result : Array(Transaction),
+  result : Array(Kajiki.Transaction),
   status : String
+}
+
+
+record Kajiki.Sender {
+  address : String,
+  publicKey : String,
+  amount : Number,
+  fee : Number,
+  signr : String from "sign_r",
+  signs : String from "sign_s"
+}
+
+record Kajiki.Recipient {
+  address : String,
+  amount : Number
+}
+
+record Kajiki.Transaction {
+  id : String,
+  action : String,
+  senders : Array(Kajiki.Sender),
+  recipients : Array(Kajiki.Recipient),
+  message : String,
+  token : String,
+  prevHash : String from "prev_hash",
+  timestamp : Number,
+  scaled : Number
 }
 
 store WalletStore {
@@ -35,7 +62,7 @@ store WalletStore {
   property error : String = ""
   property currentWalletAddress : Maybe(String) = Maybe.nothing()
   property currentWallet : Maybe(CurrentWallet) = Maybe.nothing()
-  property currentTransactions : Array(Transaction) = []
+  property currentTransactions : Array(Kajiki.Transaction) = []
 
   fun setCurrentAddress(address : String) : Void {
     next {state | currentWalletAddress = Maybe.just(address)}
@@ -70,8 +97,6 @@ store WalletStore {
       json =
         Json.parse(response.body)
         |> Maybe.toResult("Json paring error")
-
-Debug.log(json)
 
         item =
           decode json as AddressTransactionsResponse

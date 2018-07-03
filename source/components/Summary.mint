@@ -45,12 +45,15 @@ component Summary {
       |> Maybe.withDefault([])
   }
 
-  fun renderTransaction(transaction : Transaction) : Html {
+  fun renderTransaction(transaction : Kajiki.Transaction) : Html {
+    <div>
     <div class="card">
     <div class="card-body">
-    <h4 class="card-title"><{"Card Title"}></h4>
+    <h4 class="card-title"><{transaction.id}></h4>
     <h6 class="card-subtitle mb-2 text-muted"><{"more info"}></h6>
     </div>
+    </div>
+    <br/>
     </div>
   }
 
