@@ -207,7 +207,7 @@ store WalletStore {
         Debug.log("hello:")
         Debug.log(walletInfo)
 
-      next { state | walletItems = [walletInfo] }
+      next { state | walletItems = replaceItem(walletInfo) }
       Debug.log("after:")
       Debug.log(state.walletItems)
     } catch Http.ErrorResponse => error {

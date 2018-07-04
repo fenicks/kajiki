@@ -1,11 +1,33 @@
 component MyWallets {
-
-  connect WalletStore exposing { getWallets, getWalletItems, walletItems, refreshWalletItems, setCurrentAddress, getCurrentAddress, getCurrentWallet, currentWalletAddressOrFirst, getCurrentTransactions }
+  connect WalletStore exposing {
+    getWallets,
+    getWalletItems,
+    walletItems,
+    refreshWalletItems,
+    setCurrentAddress,
+    getCurrentAddress,
+    getCurrentWallet,
+    currentWalletAddressOrFirst,
+    getCurrentTransactions
+  }
 
   fun componentDidMount : Void {
     do {
-      promises = [getWallets, getWalletItems, getCurrentWallet, getCurrentTransactions]
-      `Promise.all(promises)`
+      p1 =
+        [
+          getWallets,
+          getWalletItems
+        ]
+
+      `Promise.all(p1)`
+
+      p2 =
+        [
+          getCurrentWallet,
+          getCurrentTransactions
+        ]
+
+      `Promise.all(p2)`
     }
   }
 
@@ -81,7 +103,8 @@ component MyWallets {
       <div class="card-footer text-muted">
         <ul class="list-group list-group-flush">
           <a href="/add-wallet">
-            <i class="fas fa-plus"></i><{ " Add wallet" }>
+            <i class="fas fa-plus"/>
+            <{ " Add wallet" }>
           </a>
         </ul>
       </div>
