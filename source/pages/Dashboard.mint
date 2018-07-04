@@ -1,26 +1,10 @@
 component Dashboard {
-  connect WalletStore exposing { getWallets, wallets, getWalletItems, walletItems, getCurrentWallet, currentWallet }
-
-  fun componentDidMount : Void {
-    try {
-      getWallets
-      if (Array.isEmpty(wallets)) {
-        try {
-          Window.navigate("add-wallet")
-        }
-      } else {
-        try {
-          getWalletItems
-        }
-      }
-    }
-  }
 
   fun render : Html {
     <div class="row">
       <div class="col-md-3">
         <br/>
-        <MyWallets wallets={walletItems}/>
+        <MyWallets/>
       </div>
 
       <div class="col-md-9">

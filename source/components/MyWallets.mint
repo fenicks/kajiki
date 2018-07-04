@@ -1,7 +1,13 @@
 component MyWallets {
-  property wallets : Array(WalletItem) = []
 
-  connect WalletStore exposing { refreshWalletItems, setCurrentAddress, getCurrentAddress, getCurrentWallet, currentWalletAddressOrFirst, getCurrentTransactions }
+  connect WalletStore exposing { getWallets, getWalletItems, walletItems, refreshWalletItems, setCurrentAddress, getCurrentAddress, getCurrentWallet, currentWalletAddressOrFirst, getCurrentTransactions }
+
+  fun componentDidMount : Void {
+    do {
+      promises = [getWallets, getWalletItems, getCurrentWallet, getCurrentTransactions]
+      `Promise.all(promises)`
+    }
+  }
 
   fun setCurrent (wallet : WalletItem, event : Html.Event) : Void {
     try {
@@ -45,7 +51,7 @@ component MyWallets {
           balance = "",
           address = ""
         },
-        wallets)
+        walletItems)
 
     activeWallet =
       getCurrentAddress
@@ -67,7 +73,7 @@ component MyWallets {
 
       <ul class="list-group list-group-flush">
         <{
-          wallets
+          walletItems
           |> Array.map(renderWallet)
         }>
       </ul>

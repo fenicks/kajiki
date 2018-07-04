@@ -1,18 +1,5 @@
 component Summary {
-  connect WalletStore exposing { currentWallet, walletItems, getCurrentWallet, currentWalletAddressOrFirst, getCurrentAddress, getCurrentTransactions, currentTransactions }
-
-  fun componentDidUpdate : Void {
-    try {
-      if (Maybe.isNothing(currentWallet) && !Array.isEmpty(walletItems)) {
-        try{
-        getCurrentWallet
-        getCurrentTransactions
-        }
-      } else {
-        void
-      }
-    }
-  }
+  connect WalletStore exposing { currentWallet, currentTransactions }
 
   fun render : Html {
     <div>

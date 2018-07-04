@@ -56,6 +56,20 @@ record Kajiki.Transaction {
   scaled : Number
 }
 
+module Target.Network {
+  fun testNet () : TargetNetwork {
+    {name = "Testnet", url = "https://testnet.sushichain.io:3443"}
+  }
+  fun local () : TargetNetwork {
+    {name = "Local", url = "http://localhost:3000"}
+  }
+}
+
+record TargetNetwork {
+  name : String,
+  url : String
+}
+
 store WalletStore {
   property wallets : Array(EncryptedWalletWithName) = []
   property walletItems : Array(WalletItem) = []
@@ -63,6 +77,17 @@ store WalletStore {
   property currentWalletAddress : Maybe(String) = Maybe.nothing()
   property currentWallet : Maybe(CurrentWallet) = Maybe.nothing()
   property currentTransactions : Array(Kajiki.Transaction) = []
+  property targetNetwork : TargetNetwork = Target.Network.testNet()
+
+  fun setNetwork(network : TargetNetwork) : Void {
+    next { state | targetNetwork = network }
+  }
+
+  get getNetwork : TargetNetwork {
+    try {
+    state.targetNetwork
+     }
+  }
 
   fun setCurrentAddress(address : String) : Void {
     next {state | currentWalletAddress = Maybe.just(address)}
@@ -91,7 +116,7 @@ store WalletStore {
     do {
     response =
       Http.get(
-        "https://testnet.sushichain.io:3443/api/v1/address/" + currentWalletAddressOrFirst + "/transactions")
+        getNetwork.url + "/api/v1/address/" + currentWalletAddressOrFirst + "/transactions")
       |> Http.send()
 
       json =
@@ -118,7 +143,7 @@ store WalletStore {
     do {
       response =
         Http.get(
-          "https://testnet.sushichain.io:3443/api/v1/address/" + currentWalletAddressOrFirst)
+          getNetwork.url + "/api/v1/address/" + currentWalletAddressOrFirst)
         |> Http.send()
 
         json =
@@ -154,7 +179,7 @@ store WalletStore {
     do {
       response =
         Http.get(
-          "https://testnet.sushichain.io:3443/api/v1/address/" + w.address + "/token/SUSHI")
+          getNetwork.url + "/api/v1/address/" + w.address + "/token/SUSHI")
         |> Http.send()
 
       json =
@@ -179,7 +204,12 @@ store WalletStore {
           address = w.address
         }
 
-      next { state | walletItems = replaceItem(walletInfo) }
+        Debug.log("hello:")
+        Debug.log(walletInfo)
+
+      next { state | walletItems = [walletInfo] }
+      Debug.log("after:")
+      Debug.log(state.walletItems)
     } catch Http.ErrorResponse => error {
       next { state | error = "Could not retrieve remote wallet information" }
     } catch String => error {
@@ -202,8 +232,8 @@ store WalletStore {
 
   get getWalletItems : Void {
     do {
-      wallets
-      |> Array.map(getWalletBalance)
+      promises = Array.map(getWalletBalance, wallets)
+      `Promise.all(promises)`
     }
   }
 
