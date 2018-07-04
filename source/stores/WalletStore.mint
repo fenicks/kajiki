@@ -29,7 +29,6 @@ record AddressTransactionsResponse {
   status : String
 }
 
-
 record Kajiki.Sender {
   address : String,
   publicKey : String,
@@ -57,11 +56,18 @@ record Kajiki.Transaction {
 }
 
 module Target.Network {
-  fun testNet () : TargetNetwork {
-    {name = "Testnet", url = "https://testnet.sushichain.io:3443"}
+  fun testNet : TargetNetwork {
+    {
+      name = "Testnet",
+      url = "https://testnet.sushichain.io:3443"
+    }
   }
-  fun local () : TargetNetwork {
-    {name = "Local", url = "http://localhost:3000"}
+
+  fun local : TargetNetwork {
+    {
+      name = "Local",
+      url = "http://localhost:3000"
+    }
   }
 }
 
@@ -79,18 +85,18 @@ store WalletStore {
   property currentTransactions : Array(Kajiki.Transaction) = []
   property targetNetwork : TargetNetwork = Target.Network.testNet()
 
-  fun setNetwork(network : TargetNetwork) : Void {
+  fun setNetwork (network : TargetNetwork) : Void {
     next { state | targetNetwork = network }
   }
 
   get getNetwork : TargetNetwork {
     try {
-    state.targetNetwork
-     }
+      state.targetNetwork
+    }
   }
 
-  fun setCurrentAddress(address : String) : Void {
-    next {state | currentWalletAddress = Maybe.just(address)}
+  fun setCurrentAddress (address : String) : Void {
+    next { state | currentWalletAddress = Maybe.just(address) }
   }
 
   get getCurrentAddress : Maybe(String) {
@@ -98,38 +104,48 @@ store WalletStore {
   }
 
   get emptyEncryptedWalletWithName : EncryptedWalletWithName {
-    {name = "",
-    source = "",
-    ciphertext = "",
-    address = "",
-    salt = ""}
+    {
+      name = "",
+      source = "",
+      ciphertext = "",
+      address = "",
+      salt = ""
+    }
   }
 
   get currentWalletAddressOrFirst : String {
     try {
-      first = Array.firstWithDefault({name="",balance="",address=""}, walletItems)
-      getCurrentAddress |> Maybe.withDefault(first.address)
+      first =
+        Array.firstWithDefault(
+          {
+            name = "",
+            balance = "",
+            address = ""
+          },
+          walletItems)
+
+      getCurrentAddress
+      |> Maybe.withDefault(first.address)
     }
   }
 
   get getCurrentTransactions : Void {
     do {
-    response =
-      Http.get(
-        getNetwork.url + "/api/v1/address/" + currentWalletAddressOrFirst + "/transactions")
-      |> Http.send()
+      response =
+        Http.get(
+          getNetwork.url + "/api/v1/address/" + currentWalletAddressOrFirst + "/transactions")
+        |> Http.send()
 
       json =
         Json.parse(response.body)
         |> Maybe.toResult("Json paring error")
 
-        item =
-          decode json as AddressTransactionsResponse
+      item =
+        decode json as AddressTransactionsResponse
 
-          Debug.log(item.result)
+      Debug.log(item.result)
 
-       next { state | currentTransactions = item.result}
-
+      next { state | currentTransactions = item.result }
     } catch Http.ErrorResponse => error {
       next { state | error = "Could not retrieve wallet transactions" }
     } catch String => error {
@@ -146,26 +162,29 @@ store WalletStore {
           getNetwork.url + "/api/v1/address/" + currentWalletAddressOrFirst)
         |> Http.send()
 
-        json =
-          Json.parse(response.body)
-          |> Maybe.toResult("Json paring error")
+      json =
+        Json.parse(response.body)
+        |> Maybe.toResult("Json paring error")
 
-        item =
-          decode json as AddressAmountResponse
+      item =
+        decode json as AddressAmountResponse
 
-        balances = item.result.pairs
+      balances =
+        item.result.pairs
 
-        wallet = wallets
-                 |> Array.find(\w : EncryptedWalletWithName => w.address == currentWalletAddressOrFirst)
-                 |> Maybe.withDefault(emptyEncryptedWalletWithName)
+      wallet =
+        wallets
+        |> Array.find(
+          \w : EncryptedWalletWithName => w.address == currentWalletAddressOrFirst)
+        |> Maybe.withDefault(emptyEncryptedWalletWithName)
 
-       cw = {
-         wallet = wallet,
-         balances = balances
-       }
+      cw =
+        {
+          wallet = wallet,
+          balances = balances
+        }
 
-      next { state | currentWallet = Maybe.just(cw)}
-
+      next { state | currentWallet = Maybe.just(cw) }
     } catch Http.ErrorResponse => error {
       next { state | error = "Could not retrieve remote wallet information" }
     } catch String => error {
@@ -204,8 +223,8 @@ store WalletStore {
           address = w.address
         }
 
-        Debug.log("hello:")
-        Debug.log(walletInfo)
+      Debug.log("hello:")
+      Debug.log(walletInfo)
 
       next { state | walletItems = replaceItem(walletInfo) }
       Debug.log("after:")
@@ -219,11 +238,22 @@ store WalletStore {
     }
   }
 
-  fun replaceItem(w : WalletItem) : Array(WalletItem) {
+  fun replaceItem (w : WalletItem) : Array(WalletItem) {
     try {
-      exists = Array.find(\i : WalletItem => i.address == w.address, state.walletItems)
-      if(Maybe.isJust(exists)){
-        Array.map(\i : WalletItem => if(i.address == w.address){ w } else { i }, state.walletItems)
+      exists =
+        Array.find(
+          \i : WalletItem => i.address == w.address,
+          state.walletItems)
+
+      if (Maybe.isJust(exists)) {
+        Array.map(
+          \i : WalletItem =>
+            if (i.address == w.address) {
+              w
+            } else {
+              i
+            },
+          state.walletItems)
       } else {
         Array.push(w, state.walletItems)
       }
@@ -232,7 +262,9 @@ store WalletStore {
 
   get getWalletItems : Void {
     do {
-      promises = Array.map(getWalletBalance, wallets)
+      promises =
+        Array.map(getWalletBalance, wallets)
+
       `Promise.all(promises)`
     }
   }
@@ -277,8 +309,7 @@ store WalletStore {
 
       encoded =
         updated
-        |> Array.map(
-          \ew : EncryptedWalletWithName => encode ew)
+        |> Array.map(\ew : EncryptedWalletWithName => encode ew)
 
       encodedArray =
         Object.Encode.array(encoded)

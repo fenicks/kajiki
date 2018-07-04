@@ -29,7 +29,9 @@ component Layout {
       <div
         class="collapse navbar-collapse"
         id="navbarsExampleDefault">
-         <ChooseNetwork/>    
+
+        <ChooseNetwork/>
+
       </div>
     </nav>
   }

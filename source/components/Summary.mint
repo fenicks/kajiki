@@ -3,22 +3,22 @@ component Summary {
 
   fun render : Html {
     <div>
-    <div class="card text-white bg-primary mb-3">
-      <div class="card-header">
-        <{ name }>
+      <div class="card text-white bg-primary mb-3">
+        <div class="card-header">
+          <{ name }>
+        </div>
+
+        <div class="card-body">
+          <{ renderSushiBalance(balances) }>
+
+          <{ renderTokenBalances(balances) }>
+        </div>
       </div>
 
-      <div class="card-body">
-        <{ renderSushiBalance(balances) }>
-
-        <{ renderTokenBalances(balances) }>
-      </div>
-    </div>
-
-    <{ currentTransactions |> Array.map(renderTransaction)}>
-
-
-
+      <{
+        currentTransactions
+        |> Array.map(renderTransaction)
+      }>
     </div>
   } where {
     name =
@@ -32,47 +32,56 @@ component Summary {
       |> Maybe.withDefault([])
   }
 
-  fun renderTransaction(transaction : Kajiki.Transaction) : Html {
+  fun renderTransaction (transaction : Kajiki.Transaction) : Html {
     <div>
-    <div class="card">
-    <div class="card-body">
-    <h4 class="card-title"><{transaction.id}></h4>
-    <h6 class="card-subtitle mb-2 text-muted"><{"more info"}></h6>
-    </div>
-    </div>
-    <br/>
-    </div>
-  }
+      <div class="card">
+        <div class="card-body">
+          <h4 class="card-title">
+            <{ transaction.id }>
+          </h4>
 
-  fun renderTokenBalances(balances : Array(TokenPair)) : Html {
-   if(Array.isEmpty(tokenBalances)){
-        <p class="card-text"><{"You have no custom tokens"}></p>
-   } else {
-    <p class="card-text">
+          <h6 class="card-subtitle mb-2 text-muted">
+            <{ "more info" }>
+          </h6>
+        </div>
+      </div>
+
       <br/>
-
-      <table class="table table-hover">
-        <thead>
-          <tr>
-            <th scope="col">
-              <{ "Token" }>
-            </th>
-
-            <th scope="col">
-              <{ "Balance" }>
-            </th>
-          </tr>
-        </thead>
-
-        <tbody>
-          <{ renderBalances(balances) }>
-        </tbody>
-      </table>
-    </p>
+    </div>
   }
+
+  fun renderTokenBalances (balances : Array(TokenPair)) : Html {
+    if (Array.isEmpty(tokenBalances)) {
+      <p class="card-text">
+        <{ "You have no custom tokens" }>
+      </p>
+    } else {
+      <p class="card-text">
+        <br/>
+
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th scope="col">
+                <{ "Token" }>
+              </th>
+
+              <th scope="col">
+                <{ "Balance" }>
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <{ renderBalances(balances) }>
+          </tbody>
+        </table>
+      </p>
+    }
   } where {
-   tokenBalances = balances
-   |> Array.reject(\i : TokenPair => i.token == "SUSHI")
+    tokenBalances =
+      balances
+      |> Array.reject(\i : TokenPair => i.token == "SUSHI")
   }
 
   fun renderBalances (pairs : Array(TokenPair)) : Array(Html) {
@@ -93,8 +102,10 @@ component Summary {
     </tr>
   }
 
-  fun toBalance(value : String) : String {
-   Number.toString((Number.fromString(value) |> Maybe.withDefault(0)) / 100000000)
+  fun toBalance (value : String) : String {
+    Number.toString(
+      (Number.fromString(value)
+      |> Maybe.withDefault(0)) / 100000000)
   }
 
   fun renderSushiBalance (pairs : Array(TokenPair)) : Html {

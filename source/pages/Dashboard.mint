@@ -1,5 +1,4 @@
 component Dashboard {
-
   fun render : Html {
     <div class="row">
       <div class="col-md-3">
