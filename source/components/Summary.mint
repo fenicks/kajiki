@@ -16,10 +16,8 @@ component Summary {
         </div>
       </div>
 
-      <{
-        currentTransactions
-        |> Array.map(renderTransaction)
-      }>
+      <Transactions />
+
     </div>
   } where {
     name =
@@ -31,24 +29,6 @@ component Summary {
       currentWallet
       |> Maybe.map(\c : CurrentWallet => c.balances)
       |> Maybe.withDefault([])
-  }
-
-  fun renderTransaction (transaction : Kajiki.Transaction) : Html {
-    <div>
-      <div class="card">
-        <div class="card-body">
-          <h4 class="card-title">
-            <{ transaction.id }>
-          </h4>
-
-          <h6 class="card-subtitle mb-2 text-muted">
-            <{ "more info" }>
-          </h6>
-        </div>
-      </div>
-
-      <br/>
-    </div>
   }
 
   fun renderTokenBalances (balances : Array(TokenPair)) : Html {

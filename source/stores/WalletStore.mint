@@ -92,11 +92,7 @@ store WalletStore {
   fun setNetwork (network : TargetNetwork) : Void {
     do {
       updatedConfig = { network = network }
-      Debug.log("setting:")
-      Debug.log(network)
-      Debug.log(updatedConfig)
       updateConfig(updatedConfig)
-      Debug.log("setting done")
     } catch Storage.Error => error {
       next { state | error = "could not set config: network type"}
     }
@@ -104,7 +100,6 @@ store WalletStore {
 
   get getNetwork : TargetNetwork {
       try {
-        Debug.log("getNetworkx: ")
       state.config.network
     }
   }
