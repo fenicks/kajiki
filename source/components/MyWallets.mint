@@ -8,7 +8,8 @@ component MyWallets {
     getCurrentAddress,
     getCurrentWallet,
     currentWalletAddressOrFirst,
-    getCurrentTransactions
+    getCurrentTransactions,
+    getConfig
   }
 
   fun componentDidMount : Void {
@@ -16,7 +17,8 @@ component MyWallets {
       p1 =
         [
           getWallets,
-          getWalletItems
+          getWalletItems,
+          getConfig
         ]
 
       `Promise.all(p1)`

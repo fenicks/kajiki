@@ -76,6 +76,10 @@ record TargetNetwork {
   url : String
 }
 
+record Config {
+  network : TargetNetwork
+}
+
 store WalletStore {
   property wallets : Array(EncryptedWalletWithName) = []
   property walletItems : Array(WalletItem) = []
@@ -83,15 +87,25 @@ store WalletStore {
   property currentWalletAddress : Maybe(String) = Maybe.nothing()
   property currentWallet : Maybe(CurrentWallet) = Maybe.nothing()
   property currentTransactions : Array(Kajiki.Transaction) = []
-  property targetNetwork : TargetNetwork = Target.Network.testNet()
+  property config : Config = { network = Target.Network.testNet()}
 
   fun setNetwork (network : TargetNetwork) : Void {
-    next { state | targetNetwork = network }
+    do {
+      updatedConfig = { network = network }
+      Debug.log("setting:")
+      Debug.log(network)
+      Debug.log(updatedConfig)
+      updateConfig(updatedConfig)
+      Debug.log("setting done")
+    } catch Storage.Error => error {
+      next { state | error = "could not set config: network type"}
+    }
   }
 
   get getNetwork : TargetNetwork {
-    try {
-      state.targetNetwork
+      try {
+        Debug.log("getNetworkx: ")
+      state.config.network
     }
   }
 
@@ -142,8 +156,6 @@ store WalletStore {
 
       item =
         decode json as AddressTransactionsResponse
-
-      Debug.log(item.result)
 
       next { state | currentTransactions = item.result }
     } catch Http.ErrorResponse => error {
@@ -223,12 +235,7 @@ store WalletStore {
           address = w.address
         }
 
-      Debug.log("hello:")
-      Debug.log(walletInfo)
-
       next { state | walletItems = replaceItem(walletInfo) }
-      Debug.log("after:")
-      Debug.log(state.walletItems)
     } catch Http.ErrorResponse => error {
       next { state | error = "Could not retrieve remote wallet information" }
     } catch String => error {
@@ -334,6 +341,40 @@ store WalletStore {
         decode object as Array(EncryptedWalletWithName)
 
       next { state | wallets = wallets }
+    } catch Object.Error => error {
+      void
+    } catch String => error {
+      void
+    } catch Storage.Error => error {
+      void
+    }
+  }
+
+  fun updateConfig (config : Config) : Result(Storage.Error, Void) {
+    try {
+
+      encoded = encode config
+
+      asString =
+        Json.stringify(encoded)
+
+      Storage.Local.set("kajiki_config", asString)
+    }
+  }
+
+  get getConfig : Void {
+    do {
+      raw =
+        Storage.Local.get("kajiki_config")
+
+      object =
+        Json.parse(raw)
+        |> Maybe.toResult("Json Parsing Error")
+
+      config =
+        decode object as Config
+
+      next { state | config = config }
     } catch Object.Error => error {
       void
     } catch String => error {

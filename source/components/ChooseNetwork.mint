@@ -1,13 +1,33 @@
 component ChooseNetwork {
-  connect WalletStore exposing { setNetwork, getNetwork }
+  connect WalletStore exposing { getWallets, getWalletItems, setNetwork, getNetwork, getConfig, refreshWalletItems, getCurrentWallet, getCurrentTransactions }
 
   fun onChangeNetwork (event : Html.Event) : Void {
-    setNetwork(network)
+    do {
+      setNetwork(network)
+      getConfig
+      p1 =
+        [
+          getWallets,
+          getWalletItems,
+
+        ]
+
+      `Promise.all(p1)`
+
+      p2 =
+        [
+          getCurrentWallet,
+          getCurrentTransactions
+        ]
+
+      `Promise.all(p2)`
+    }
+
   } where {
     network =
       case (Dom.getValue(event.target)) {
-        "1" => Target.Network.testNet()
-        "2" => Target.Network.local()
+        "Testnet" => Target.Network.testNet()
+        "Local"   => Target.Network.local()
         => Target.Network.testNet()
       }
   }
@@ -30,10 +50,10 @@ component ChooseNetwork {
   }
 
   fun renderNetwork (net : TargetNetwork) : Html {
-    if (net == getNetwork) {
+    if (net.name == getNetwork.name) {
       <option
         value={net.name}
-        selected="">
+        selected="true">
 
         <{ net.name }>
 

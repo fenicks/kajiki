@@ -1,8 +1,9 @@
 component Summary {
-  connect WalletStore exposing { currentWallet, currentTransactions }
+  connect WalletStore exposing { currentWallet, currentTransactions, error }
 
   fun render : Html {
     <div>
+      <div><{ error }></div>
       <div class="card text-white bg-primary mb-3">
         <div class="card-header">
           <{ name }>

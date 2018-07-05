@@ -154,7 +154,6 @@ component CreateWallet {
       created =
         storeWallet(encryptedWithName)
 
-      Debug.log(created)
       Window.navigate("dashboard")
     } catch Wallet.Error => error {
       next { state | error = "Could not generate a new wallet" }
