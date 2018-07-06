@@ -27,6 +27,10 @@ component Transactions {
     `
   }
 
+  fun reduce(f : Function(a,a,b), array: Array(a)) : b {
+    `array.reduce(f)`
+  }
+
   fun render : Html {
     <div>
      <{ transactions
@@ -51,11 +55,11 @@ component Transactions {
       <div class="card">
         <div class="card-body">
           <h4 class="card-title">
-            <i class="fas fa-download"></i><{ transaction.id }>
+            <i class="fas fa-download"></i><{ " Received " + amount + " " + transaction.token}>
           </h4>
 
           <h6 class="card-subtitle mb-2 text-muted">
-            <{ "more info" }>
+            <{ dateTime }>
           </h6>
         </div>
       </div>
@@ -63,7 +67,8 @@ component Transactions {
       <br/>
     </div>
   } where {
-    a = Debug.log(getTransactionAmountForAddress(transaction))
+    amount = getTransactionAmountForAddress(transaction)
+    dateTime = getDateTimeForTransaction(transaction)
   }
 
   fun getTransactionAmountForAddress(transaction : Kajiki.Transaction) : String {
@@ -72,12 +77,20 @@ component Transactions {
                 |> Maybe.map(\w : CurrentWallet => w.wallet.address)
                 |> Maybe.withDefault("")
 
-      recipients = transaction.recipients
+      total = transaction.recipients
                    |> Array.select(\r : Kajiki.Recipient => r.address == address)
                    |> Array.map(\r : Kajiki.Recipient => r.amount)
+                   |> reduce(\a : Number, b : Number => a + b)
 
-      "200.98"               
+      Number.toString(total / 100000000)
 
+    }
+  }
+
+  fun getDateTimeForTransaction(transaction: Kajiki.Transaction) : String {
+     try {
+       millis = (transaction.timestamp * 1000)
+       `new Date(millis).toString()`
     }
   }
 
