@@ -6,7 +6,7 @@ component Summary {
       <div><{ error }></div>
       <div class="card text-white bg-primary mb-3">
         <div class="card-header">
-          <{ name }>
+          <{ Common.getCurrentWalletName(currentWallet) }>
         </div>
 
         <div class="card-body">
@@ -20,11 +20,6 @@ component Summary {
 
     </div>
   } where {
-    name =
-      currentWallet
-      |> Maybe.map(\c : CurrentWallet => c.wallet.name)
-      |> Maybe.withDefault("")
-
     balances =
       currentWallet
       |> Maybe.map(\c : CurrentWallet => c.balances)

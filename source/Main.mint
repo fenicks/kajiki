@@ -13,7 +13,11 @@ component Main {
       },
       {
         name = "dashboard",
-        contents = <Dashboard/>
+        contents = <DashboardSummary/>
+      },
+      {
+        name = "send",
+        contents = <DashboardSend/>
       },
       {
         name = "not_found",

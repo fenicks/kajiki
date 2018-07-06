@@ -23,6 +23,12 @@ routes {
     }
   }
 
+  /dashboard/send {
+    do {
+      Application.setPage("send")
+    }
+  }
+
   * {
     Application.setPage("not_found")
   }
