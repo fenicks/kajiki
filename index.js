@@ -34345,15 +34345,6 @@ $Storage_Error_QuotaExceeded = Symbol.for(`Storage_Error_QuotaExceeded`)
 $Storage_Error_NotFound = Symbol.for(`Storage_Error_NotFound`)
 $Storage_Error_Unkown = Symbol.for(`Storage_Error_Unkown`)
 
-$Object_Error_MissingObjectKey = Symbol.for(`Object_Error_MissingObjectKey`)
-$Object_Error_NotAValidTime = Symbol.for(`Object_Error_NotAValidTime`)
-$Object_Error_NotABoolean = Symbol.for(`Object_Error_NotABoolean`)
-$Object_Error_NotAnObject = Symbol.for(`Object_Error_NotAnObject`)
-$Object_Error_NotANumber = Symbol.for(`Object_Error_NotANumber`)
-$Object_Error_NotAString = Symbol.for(`Object_Error_NotAString`)
-$Object_Error_NotAnArray = Symbol.for(`Object_Error_NotAnArray`)
-$Object_Error_Unkown = Symbol.for(`Object_Error_Unkown`)
-
 $Http_Error_NetworkError = Symbol.for(`Http_Error_NetworkError`)
 $Http_Error_Aborted = Symbol.for(`Http_Error_Aborted`)
 $Http_Error_Timeout = Symbol.for(`Http_Error_Timeout`)
@@ -34410,23 +34401,23 @@ const $$AddressAmountResponse = (input) => {
   })
 }
 
-const $$Sender = (input) => {
+const $$Kajiki_Sender = (input) => {
   let address = Decoder.field(`address`, Decoder.string)(input)
   if (address instanceof Err) { return address }
 
   let publicKey = Decoder.field(`publicKey`, Decoder.string)(input)
   if (publicKey instanceof Err) { return publicKey }
 
-  let amount = Decoder.field(`amount`, Decoder.string)(input)
+  let amount = Decoder.field(`amount`, Decoder.number)(input)
   if (amount instanceof Err) { return amount }
 
-  let fee = Decoder.field(`fee`, Decoder.string)(input)
+  let fee = Decoder.field(`fee`, Decoder.number)(input)
   if (fee instanceof Err) { return fee }
 
-  let signr = Decoder.field(`signr`, Decoder.string)(input)
+  let signr = Decoder.field(`sign_r`, Decoder.string)(input)
   if (signr instanceof Err) { return signr }
 
-  let signs = Decoder.field(`signs`, Decoder.string)(input)
+  let signs = Decoder.field(`sign_s`, Decoder.string)(input)
   if (signs instanceof Err) { return signs }
 
   return new Ok({
@@ -34439,11 +34430,11 @@ const $$Sender = (input) => {
   })
 }
 
-const $$Recipient = (input) => {
+const $$Kajiki_Recipient = (input) => {
   let address = Decoder.field(`address`, Decoder.string)(input)
   if (address instanceof Err) { return address }
 
-  let amount = Decoder.field(`amount`, Decoder.string)(input)
+  let amount = Decoder.field(`amount`, Decoder.number)(input)
   if (amount instanceof Err) { return amount }
 
   return new Ok({
@@ -34452,17 +34443,17 @@ const $$Recipient = (input) => {
   })
 }
 
-const $$Transaction = (input) => {
+const $$Kajiki_Transaction = (input) => {
   let id = Decoder.field(`id`, Decoder.string)(input)
   if (id instanceof Err) { return id }
 
   let action = Decoder.field(`action`, Decoder.string)(input)
   if (action instanceof Err) { return action }
 
-  let senders = Decoder.field(`senders`, Decoder.array($$Sender))(input)
+  let senders = Decoder.field(`senders`, Decoder.array($$Kajiki_Sender))(input)
   if (senders instanceof Err) { return senders }
 
-  let recipients = Decoder.field(`recipients`, Decoder.array($$Recipient))(input)
+  let recipients = Decoder.field(`recipients`, Decoder.array($$Kajiki_Recipient))(input)
   if (recipients instanceof Err) { return recipients }
 
   let message = Decoder.field(`message`, Decoder.string)(input)
@@ -34471,7 +34462,7 @@ const $$Transaction = (input) => {
   let token = Decoder.field(`token`, Decoder.string)(input)
   if (token instanceof Err) { return token }
 
-  let prevHash = Decoder.field(`prevHash`, Decoder.string)(input)
+  let prevHash = Decoder.field(`prev_hash`, Decoder.string)(input)
   if (prevHash instanceof Err) { return prevHash }
 
   let timestamp = Decoder.field(`timestamp`, Decoder.number)(input)
@@ -34494,7 +34485,7 @@ const $$Transaction = (input) => {
 }
 
 const $$AddressTransactionsResponse = (input) => {
-  let result = Decoder.field(`result`, Decoder.array($$Transaction))(input)
+  let result = Decoder.field(`result`, Decoder.array($$Kajiki_Transaction))(input)
   if (result instanceof Err) { return result }
 
   let status = Decoder.field(`status`, Decoder.string)(input)
@@ -34528,6 +34519,28 @@ const $$EncryptedWalletWithName = (input) => {
     ciphertext: ciphertext.value,
     address: address.value,
     salt: salt.value
+  })
+}
+
+const $$TargetNetwork = (input) => {
+  let name = Decoder.field(`name`, Decoder.string)(input)
+  if (name instanceof Err) { return name }
+
+  let url = Decoder.field(`url`, Decoder.string)(input)
+  if (url instanceof Err) { return url }
+
+  return new Ok({
+    name: name.value,
+    url: url.value
+  })
+}
+
+const $$Config = (input) => {
+  let network = Decoder.field(`network`, $$TargetNetwork)(input)
+  if (network instanceof Err) { return network }
+
+  return new Ok({
+    network: network.value
   })
 }
 
@@ -34728,6 +34741,22 @@ _program.addRoutes([{
   path: `*`
 }])
 
+const $Target_Network = new(class {
+  testNet() {
+    return new Record({
+      name: `Testnet`,
+      url: `https://testnet.sushichain.io:3443`
+    })
+  }
+
+  local() {
+    return new Record({
+      name: `Local`,
+      url: `http://localhost:3000`
+    })
+  }
+})
+
 const $Maybe = new(class {
   nothing() {
     return new Nothing
@@ -34774,16 +34803,32 @@ const $Maybe = new(class {
           }
         })()
   }
+
+  flatten(maybe) {
+    return (() => {
+          if (maybe instanceof Just) {
+            return maybe.value
+          } else {
+            return maybe
+          }
+        })()
+  }
+
+  oneOf(array) {
+    return $Maybe.flatten.bind($Maybe)($Array.find(((item) => {
+    return $Maybe.isJust(item)
+    }), array))
+  }
 })
 
 const $Json = new(class {
   parse(input) {
     return (() => {
-         	try {
-         		return new Just(JSON.parse(input))
-         	} catch (error) {
-         		return new Nothing()
-        	}
+          try {
+            return new Just(JSON.parse(input))
+          } catch (error) {
+            return new Nothing()
+          }
         })()
   }
 
@@ -34816,14 +34861,14 @@ const $Url = new(class {
           this._a.href = url
 
           return {
-            hostname: this._a.hostname,
-            protocol: this._a.protocol,
-            origin: this._a.origin,
-            path: this._a.pathname,
-            search: this._a.search,
-            hash: this._a.hash,
-            host: this._a.host,
-            port: this._a.port
+            hostname: this._a.hostname || "",
+            protocol: this._a.protocol || "",
+            origin: this._a.origin || "",
+            path: this._a.pathname || "",
+            search: this._a.search || "",
+            hash: this._a.hash || "",
+            host: this._a.host || "",
+            port: this._a.port || ""
           }
         })()
   }
@@ -35110,8 +35155,8 @@ const $String = new(class {
     return string.replace(/\b[a-z]/g, char => char.toUpperCase())
   }
 
-  repeat(count, string) {
-    return string.repeat(count)
+  repeat(times, string) {
+    return string.repeat(times)
   }
 
   join(separator, array) {
@@ -35148,15 +35193,31 @@ const $FormData = new(class {
 
   addString(key, value, formData) {
     return (() => {
-         	formData.append(key, value)
-         	return formData
+          var newFormData = new FormData();
+
+          // Create new FormData object
+          for(let pair of formData.entries()) {
+            newFormData.append(pair[0], pair[1])
+          }
+
+          newFormData.append(key, value)
+
+          return newFormData
         })()
   }
 
   addFile(key, value, formData) {
     return (() => {
-         	formData.append(key, value)
-         	return formData
+          var newFormData = new FormData();
+
+          // Create new FormData object
+          for(let pair of formData.entries()) {
+            newFormData.append(pair[0], pair[1])
+          }
+
+          newFormData.append(key, value)
+
+          return newFormData
         })()
   }
 })
@@ -35385,22 +35446,18 @@ const $Storage_Common = new(class {
 })
 
 const $Bool = new(class {
-  not(item) {
-    return !item
-  }
-
   toString(item) {
     return item.toString()
   }
 })
 
 const $Result = new(class {
-  error(input) {
-    return new Err(input)
-  }
-
   ok(input) {
     return new Ok(input)
+  }
+
+  error(input) {
+    return new Err(input)
   }
 
   withDefault(value, input) {
@@ -35435,6 +35492,14 @@ const $Result = new(class {
             return new Nothing()
           }
         })()
+  }
+
+  join(input) {
+    return ($Result.isOk(input) ? input.value : new Err())
+  }
+
+  flatMap(func, input) {
+    return $Result.join($Result.map(func, input))
   }
 })
 
@@ -35503,6 +35568,12 @@ const $Object_Encode = new(class {
 
           return result
         })()
+  }
+})
+
+const $Object_Error = new(class {
+  toString(error) {
+    return error.toString()
   }
 })
 
@@ -35707,46 +35778,46 @@ const $Http = new(class {
     return new Record({
       withCredentials: false,
       method: `GET`,
-      headers: [],
       body: null,
+      headers: [],
       url: ``
     })
   }
 
-  delete(value) {
-    return $Http.url.bind($Http)(value, $Http.method.bind($Http)(`DELETE`, $Http.empty.bind($Http)()))
+  delete(urlValue) {
+    return $Http.url.bind($Http)(urlValue, $Http.method.bind($Http)(`DELETE`, $Http.empty.bind($Http)()))
   }
 
-  get(value) {
-    return $Http.url.bind($Http)(value, $Http.method.bind($Http)(`GET`, $Http.empty.bind($Http)()))
+  get(urlValue) {
+    return $Http.url.bind($Http)(urlValue, $Http.method.bind($Http)(`GET`, $Http.empty.bind($Http)()))
   }
 
-  put(value) {
-    return $Http.url.bind($Http)(value, $Http.method.bind($Http)(`PUT`, $Http.empty.bind($Http)()))
+  put(urlValue) {
+    return $Http.url.bind($Http)(urlValue, $Http.method.bind($Http)(`PUT`, $Http.empty.bind($Http)()))
   }
 
-  post(value) {
-    return $Http.url.bind($Http)(value, $Http.method.bind($Http)(`POST`, $Http.empty.bind($Http)()))
+  post(urlValue) {
+    return $Http.url.bind($Http)(urlValue, $Http.method.bind($Http)(`POST`, $Http.empty.bind($Http)()))
   }
 
-  stringBody(value, request) {
-    return _update(request, { body: value })
+  stringBody(body, request) {
+    return _update(request, { body: body })
   }
 
-  formDataBody(value, request) {
-    return _update(request, { body: value })
+  formDataBody(body, request) {
+    return _update(request, { body: body })
   }
 
-  method(value, request) {
-    return _update(request, { method: value })
+  method(method, request) {
+    return _update(request, { method: method })
   }
 
   withCredentials(value, request) {
     return _update(request, { withCredentials: value })
   }
 
-  url(value, request) {
-    return _update(request, { url: value })
+  url(url, request) {
+    return _update(request, { url: url })
   }
 
   header(key, value, request) {
@@ -35758,6 +35829,10 @@ const $Http = new(class {
           this._requests[uid].abort()
           delete this._requests[uid]
         })
+  }
+
+  send(request) {
+    return $Http.sendWithID.bind($Http)($Uid.generate(), request)
   }
 
   sendWithID(uid, request) {
@@ -35824,10 +35899,6 @@ const $Http = new(class {
 
           xhr.send(request.body)
         })
-  }
-
-  send(request) {
-    return $Http.sendWithID.bind($Http)($Uid.generate(), request)
   }
 })
 
@@ -36021,7 +36092,7 @@ const $Array = new(class {
   }
 
   reverse(array) {
-    return array.reverse()
+    return array.slice().reverse()
   }
 
   map(func, array) {
@@ -36043,6 +36114,7 @@ const $Array = new(class {
   find(func, array) {
     return (() => {
           let item = array.find(func)
+
           if (item != undefined) {
             return new Just(item)
           } else {
@@ -36056,7 +36128,7 @@ const $Array = new(class {
   }
 
   sort(func, array) {
-    return array.sort(func)
+    return array.slice().sort(func)
   }
 
   sortBy(func, array) {
@@ -36078,8 +36150,8 @@ const $Array = new(class {
         })()
   }
 
-  slice(from, to, array) {
-    return array.slice(from, to)
+  slice(begin, end, array) {
+    return array.slice(begin, end)
   }
 
   isEmpty(array) {
@@ -36091,19 +36163,25 @@ const $Array = new(class {
   }
 
   contains(other, array) {
-    return array.includes(other)
+    return (() => {
+          for (let item of array) {
+            if (_compare(other, item)) {
+              return true
+            }
+          }
+
+          return false
+        })()
   }
 
   range(from, to) {
     return Array.from({ length: (to + 1) - from }).map((v, i) => i + from)
   }
 
-  do(array) {
-    return null
-  }
-
   delete(what, array) {
-    return array.filter((item) => item !== what)
+    return $Array.reject.bind($Array)(((item) => {
+    return !_compare(item, what)
+    }), array)
   }
 
   max(array) {
@@ -36129,6 +36207,10 @@ const $Array = new(class {
             return new Nothing()
           }
         })()
+  }
+
+  do(array) {
+    return null
   }
 })
 
@@ -36369,7 +36451,9 @@ const $WalletStore = new (class extends Store {
     constructor() {
     super()
     this.props = {
-        wallets: [],walletItems: [],error: ``,currentWalletAddress: $Maybe.nothing(),currentWallet: $Maybe.nothing(),currentTransactions: []
+        wallets: [],walletItems: [],error: ``,currentWalletAddress: $Maybe.nothing(),currentWallet: $Maybe.nothing(),currentTransactions: [],config: new Record({
+      network: $Target_Network.testNet()
+    })
     }
   }
 
@@ -36421,6 +36505,16 @@ const $WalletStore = new (class extends Store {
     }
   }
 
+  get config () {
+    if (this.props.config != undefined) {
+      return this.props.config
+    } else {
+      return new Record({
+      network: $Target_Network.testNet()
+    })
+    }
+  }
+
   get state () {
     return {
     wallets: this.wallets,
@@ -36428,8 +36522,13 @@ const $WalletStore = new (class extends Store {
     error: this.error,
     currentWalletAddress: this.currentWalletAddress,
     currentWallet: this.currentWallet,
-    currentTransactions: this.currentTransactions
+    currentTransactions: this.currentTransactions,
+    config: this.config
     }
+  }
+
+  get getNetwork() {
+    return (() => { return this.state.config.network })()
   }
 
   get getCurrentAddress() {
@@ -36461,7 +36560,7 @@ const $WalletStore = new (class extends Store {
       try {
         let response = await (async ()=> {
       try {
-        return await $Http.send($Http.get(`https://testnet.sushichain.io:3443/api/v1/address/` + this.currentWalletAddressOrFirst + `/transactions`))
+        return await $Http.send($Http.get(this.getNetwork.url + `/api/v1/address/` + this.currentWalletAddressOrFirst + `/transactions`))
       } catch(_error) {
         let error = _error;
      new Promise((_resolve) => {
@@ -36487,12 +36586,10 @@ const $WalletStore = new (class extends Store {
 
     let json = _1.value
 
-     await $Debug.log(json)
+    let _2 = $$AddressTransactionsResponse(json)
 
-    let _3 = $$AddressTransactionsResponse(json)
-
-    if (_3 instanceof Err) {
-      let _error = _3.value
+    if (_2 instanceof Err) {
+      let _error = _2.value
 
       let error = _error;
      new Promise((_resolve) => {
@@ -36502,9 +36599,7 @@ const $WalletStore = new (class extends Store {
       throw new DoError
     }
 
-    let item = _3.value
-
-     await $Debug.log(item.result)
+    let item = _2.value
 
      await new Promise((_resolve) => {
       this.setState(_update(this.state, { currentTransactions: item.result }), _resolve)
@@ -36525,7 +36620,7 @@ const $WalletStore = new (class extends Store {
       try {
         let response = await (async ()=> {
       try {
-        return await $Http.send($Http.get(`https://testnet.sushichain.io:3443/api/v1/address/` + this.currentWalletAddressOrFirst))
+        return await $Http.send($Http.get(this.getNetwork.url + `/api/v1/address/` + this.currentWalletAddressOrFirst))
       } catch(_error) {
         let error = _error;
      new Promise((_resolve) => {
@@ -36594,7 +36689,9 @@ const $WalletStore = new (class extends Store {
   get getWalletItems() {
     return (async () => {
       try {
-         await $Array.map($WalletStore.getWalletBalance.bind($WalletStore), this.wallets)
+        let promises = await $Array.map($WalletStore.getWalletBalance.bind($WalletStore), this.wallets)
+
+     await Promise.all(promises)
       }
       catch(_error) {
         if (_error instanceof DoError) {
@@ -36677,6 +36774,94 @@ const $WalletStore = new (class extends Store {
     })()
   }
 
+  get getConfig() {
+    return (async () => {
+      try {
+        let _0 = $Storage_Local.get(`kajiki_config`)
+
+    if (_0 instanceof Err) {
+      let _error = _0.value
+
+      let error = _error;
+     null
+
+      throw new DoError
+    }
+
+    let raw = _0.value
+
+    let _1 = $Maybe.toResult(`Json Parsing Error`, $Json.parse(raw))
+
+    if (_1 instanceof Err) {
+      let _error = _1.value
+
+      let error = _error;
+     null
+
+      throw new DoError
+    }
+
+    let object = _1.value
+
+    let _2 = $$Config(object)
+
+    if (_2 instanceof Err) {
+      let _error = _2.value
+
+      let error = _error;
+     null
+
+      throw new DoError
+    }
+
+    let config = _2.value
+
+     await new Promise((_resolve) => {
+      this.setState(_update(this.state, { config: config }), _resolve)
+    })
+      }
+      catch(_error) {
+        if (_error instanceof DoError) {
+        } else {
+          console.warn(`Unhandled error in do statement`)
+          console.log(_error)
+        }
+      } 
+    })()
+  }
+
+  setNetwork(network) {
+    return (async () => {
+      try {
+        let updatedConfig = await new Record({
+      network: network
+    })
+
+    let _1 = $WalletStore.updateConfig.bind($WalletStore)(updatedConfig)
+
+    if (_1 instanceof Err) {
+      let _error = _1.value
+
+      let error = _error;
+     new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: `could not set config: network type` }), _resolve)
+    })
+
+      throw new DoError
+    }
+
+     _1.value
+      }
+      catch(_error) {
+        if (_error instanceof DoError) {
+        } else {
+          console.warn(`Unhandled error in do statement`)
+          console.log(_error)
+        }
+      } 
+    })()
+  }
+
   setCurrentAddress(address) {
     return new Promise((_resolve) => {
       this.setState(_update(this.state, { currentWalletAddress: $Maybe.just(address) }), _resolve)
@@ -36688,7 +36873,7 @@ const $WalletStore = new (class extends Store {
       try {
         let response = await (async ()=> {
       try {
-        return await $Http.send($Http.get(`https://testnet.sushichain.io:3443/api/v1/address/` + w.address + `/token/SUSHI`))
+        return await $Http.send($Http.get(this.getNetwork.url + `/api/v1/address/` + w.address + `/token/SUSHI`))
       } catch(_error) {
         let error = _error;
      new Promise((_resolve) => {
@@ -36792,6 +36977,14 @@ const $WalletStore = new (class extends Store {
     let asString = $Json.stringify(encodedArray)
 
     return $Storage_Local.set(`kajiki_wallets`, asString) })()
+  }
+
+  updateConfig(config) {
+    return (() => { let encoded = _encode(config)
+
+    let asString = $Json.stringify(encoded)
+
+    return $Storage_Local.set(`kajiki_config`, asString) })()
   }
 })
 $WalletStore.__displayName = `WalletStore`
@@ -37001,6 +37194,95 @@ const $Ui = new (class extends Store {
 })
 $Ui.__displayName = `Ui`
 
+class $Transactions extends Component {
+  get currentWallet () { return $WalletStore.currentWallet }
+
+  get currentTransactions () { return $WalletStore.currentTransactions }
+
+  componentWillUnmount () {
+    $WalletStore._unsubscribe(this)
+  }
+
+  componentDidMount () {
+    $WalletStore._subscribe(this)
+  }
+
+  aggregateTransactions(transactions) {
+    return (() => {
+          var result = [];
+          transactions.forEach(function (hash) {
+            return function (a) {
+             var dt = new Date(a.timestamp*1000).toDateString()
+             if (!hash[dt]) {
+                hash[dt] = new Record({ date: dt, transactions: []});
+                result.push(hash[dt]);
+             }
+            var t = a
+            t.recipients = t.recipients.map(function (r){ return new Record(r)});
+            hash[dt].transactions.push(new Record(t));
+            };
+          }(Object.create(null)));
+          return result;
+        })()
+  }
+
+  sum(f, array) {
+    return ($Array.isEmpty(array) ? 0 : array.reduce(f))
+  }
+
+  render() {
+    let transactions = this.aggregateTransactions.bind(this)(this.currentTransactions)
+
+    return _createElement("div", {}, [$Array.map(this.renderTransactionGroup.bind(this), transactions)])
+  }
+
+  renderTransactionGroup(group) {
+    return _createElement("div", {}, [group.date, $Array.map(this.renderTransaction.bind(this), group.transactions)])
+  }
+
+  renderTransaction(transaction) {
+    let amount = this.getTransactionAmountForAddress.bind(this)(transaction)
+
+    let dateTime = this.getDateTimeForTransaction.bind(this)(transaction)
+
+    return _createElement("div", {}, [_createElement("div", {
+      className: `card`
+    }, [_createElement("div", {
+      className: `card-body`
+    }, [_createElement("h4", {
+      className: `card-title`
+    }, [_createElement("i", {
+      className: `fas fa-download`
+    }), ` Received ` + amount + ` ` + transaction.token]), _createElement("h6", {
+      className: `card-subtitle mb-2 text-muted`
+    }, [dateTime])])]), _createElement("br", {})])
+  }
+
+  getTransactionAmountForAddress(transaction) {
+    return (() => { let address = $Maybe.withDefault(``, $Maybe.map(((w) => {
+    return w.wallet.address
+    }), this.currentWallet))
+
+    let total = this.sum.bind(this)(((a, b) => {
+    return a + b
+    }), $Array.map(((r) => {
+    return r.amount
+    }), $Array.select(((r) => {
+    return _compare(r.address, address)
+    }), transaction.recipients)))
+
+    return $Number.toString(total / 100000000) })()
+  }
+
+  getDateTimeForTransaction(transaction) {
+    return (() => { let millis = (transaction.timestamp * 1000)
+
+    return new Date(millis).toString() })()
+  }
+}
+
+$Transactions.displayName = "Transactions"
+
 class $Layout extends Component {
   get nav() {
     return _createElement("nav", {
@@ -37021,7 +37303,7 @@ class $Layout extends Component {
     })]), _createElement("div", {
       "id": `navbarsExampleDefault`,
       className: `collapse navbar-collapse`
-    })])
+    }, [_createElement($ChooseNetwork, {  })])])
   }
 
   get children () {
@@ -37057,13 +37339,11 @@ $Layout.defaultProps = {
 }
 
 class $MyWallets extends Component {
-  get wallets () {
-    if (this.props.wallets != undefined) {
-      return this.props.wallets
-    } else {
-      return []
-    }
-  }
+  get getWallets () { return $WalletStore.getWallets }
+
+  get getWalletItems () { return $WalletStore.getWalletItems }
+
+  get walletItems () { return $WalletStore.walletItems }
 
   get refreshWalletItems () { return $WalletStore.refreshWalletItems }
 
@@ -37077,12 +37357,33 @@ class $MyWallets extends Component {
 
   get getCurrentTransactions () { return $WalletStore.getCurrentTransactions }
 
+  get getConfig () { return $WalletStore.getConfig }
+
   componentWillUnmount () {
     $WalletStore._unsubscribe(this)
   }
 
-  componentDidMount () {
+  componentDidMount() {
     $WalletStore._subscribe(this)
+
+    return (async () => {
+      try {
+        let p1 = await [this.getWallets, this.getWalletItems, this.getConfig]
+
+     await Promise.all(p1)
+
+    let p2 = await [this.getCurrentWallet, this.getCurrentTransactions]
+
+     await Promise.all(p2)
+      }
+      catch(_error) {
+        if (_error instanceof DoError) {
+        } else {
+          console.warn(`Unhandled error in do statement`)
+          console.log(_error)
+        }
+      } 
+    })()
   }
 
   setCurrent(wallet, event) {
@@ -37100,7 +37401,7 @@ class $MyWallets extends Component {
       name: ``,
       balance: ``,
       address: ``
-    }), this.wallets)
+    }), this.walletItems)
 
     let activeWallet = $Maybe.withDefault(first.address, this.getCurrentAddress)
 
@@ -37124,7 +37425,7 @@ class $MyWallets extends Component {
       className: `card-header`
     }, [`My Wallets`]), _createElement("ul", {
       className: `list-group list-group-flush`
-    }, [$Array.map(this.renderWallet.bind(this), this.wallets)]), _createElement("div", {
+    }, [$Array.map(this.renderWallet.bind(this), this.walletItems)]), _createElement("div", {
       className: `card-footer text-muted`
     }, [_createElement("ul", {
       className: `list-group list-group-flush`
@@ -37138,33 +37439,102 @@ class $MyWallets extends Component {
 
 $MyWallets.displayName = "MyWallets"
 
-$MyWallets.defaultProps = {
-  wallets: []
-}
+class $ChooseNetwork extends Component {
+  get getWallets () { return $WalletStore.getWallets }
 
-class $Summary extends Component {
-  get currentWallet () { return $WalletStore.currentWallet }
+  get getWalletItems () { return $WalletStore.getWalletItems }
 
-  get walletItems () { return $WalletStore.walletItems }
+  setNetwork (...params) { return $WalletStore.setNetwork(...params) }
+
+  get getNetwork () { return $WalletStore.getNetwork }
+
+  get getConfig () { return $WalletStore.getConfig }
+
+  get refreshWalletItems () { return $WalletStore.refreshWalletItems }
 
   get getCurrentWallet () { return $WalletStore.getCurrentWallet }
 
-  get currentWalletAddressOrFirst () { return $WalletStore.currentWalletAddressOrFirst }
-
-  get getCurrentAddress () { return $WalletStore.getCurrentAddress }
-
   get getCurrentTransactions () { return $WalletStore.getCurrentTransactions }
-
-  get currentTransactions () { return $WalletStore.currentTransactions }
 
   componentWillUnmount () {
     $WalletStore._unsubscribe(this)
   }
 
-  componentDidUpdate() {
-    return (() => { return ($Maybe.isNothing(this.currentWallet) && !$Array.isEmpty(this.walletItems) ? (() => {  this.getCurrentWallet
+  componentDidMount () {
+    $WalletStore._subscribe(this)
+  }
 
-    return this.getCurrentTransactions })() : null) })()
+  onChangeNetwork(event) {
+    let network = (() => {
+      let __condition = $Dom.getValue(event.target)
+
+       if (_compare(__condition, `Testnet`)) {
+        return $Target_Network.testNet()
+      } else if (_compare(__condition, `Local`)) {
+        return $Target_Network.local()
+      } else {
+        return $Target_Network.testNet()
+      }
+    })()
+
+    return (async () => {
+      try {
+         await this.setNetwork.bind(this)(network)
+
+     await this.getConfig
+
+    let p1 = await [this.getWallets, this.getWalletItems]
+
+     await Promise.all(p1)
+
+    let p2 = await [this.getCurrentWallet, this.getCurrentTransactions]
+
+     await Promise.all(p2)
+      }
+      catch(_error) {
+        if (_error instanceof DoError) {
+        } else {
+          console.warn(`Unhandled error in do statement`)
+          console.log(_error)
+        }
+      } 
+    })()
+  }
+
+  render() {
+    let options = $Array.map(this.renderNetwork.bind(this), [$Target_Network.testNet(), $Target_Network.local()])
+
+    return _createElement("form", {
+      className: `form-inline my-2 my-lg-0`
+    }, [_createElement("div", {
+      className: `form-group`
+    }, [_createElement("select", {
+      "onChange": (event => (this.onChangeNetwork.bind(this))(_normalizeEvent(event))),
+      className: `custom-select mr-sm-2`
+    }, [options])])])
+  }
+
+  renderNetwork(net) {
+    return (_compare(net.name, this.getNetwork.name) ? _createElement("option", {
+      "value": net.name,
+      "selected": `true`
+    }, [net.name]) : _createElement("option", {
+      "value": net.name
+    }, [net.name]))
+  }
+}
+
+$ChooseNetwork.displayName = "ChooseNetwork"
+
+class $Summary extends Component {
+  get currentWallet () { return $WalletStore.currentWallet }
+
+  get currentTransactions () { return $WalletStore.currentTransactions }
+
+  get error () { return $WalletStore.error }
+
+  componentWillUnmount () {
+    $WalletStore._unsubscribe(this)
   }
 
   componentDidMount () {
@@ -37180,25 +37550,13 @@ class $Summary extends Component {
     return c.balances
     }), this.currentWallet))
 
-    return _createElement("div", {}, [_createElement("div", {
+    return _createElement("div", {}, [_createElement("div", {}, [this.error]), _createElement("div", {
       className: `card text-white bg-primary mb-3`
     }, [_createElement("div", {
       className: `card-header`
     }, [name]), _createElement("div", {
       className: `card-body`
-    }, [this.renderSushiBalance.bind(this)(balances), this.renderTokenBalances.bind(this)(balances)])]), $Array.map(this.renderTransaction.bind(this), this.currentTransactions)])
-  }
-
-  renderTransaction(transaction) {
-    return _createElement("div", {
-      className: `card`
-    }, [_createElement("div", {
-      className: `card-body`
-    }, [_createElement("h4", {
-      className: `card-title`
-    }, [`Card Title`]), _createElement("h6", {
-      className: `card-subtitle mb-2 text-muted`
-    }, [`more info`])])])
+    }, [this.renderSushiBalance.bind(this)(balances), this.renderTokenBalances.bind(this)(balances)])]), _createElement($Transactions, {  })])
   }
 
   renderTokenBalances(balances) {
@@ -37256,36 +37614,12 @@ class $Summary extends Component {
 $Summary.displayName = "Summary"
 
 class $Dashboard extends Component {
-  get getWallets () { return $WalletStore.getWallets }
-
-  get wallets () { return $WalletStore.wallets }
-
-  get getWalletItems () { return $WalletStore.getWalletItems }
-
-  get walletItems () { return $WalletStore.walletItems }
-
-  get getCurrentWallet () { return $WalletStore.getCurrentWallet }
-
-  get currentWallet () { return $WalletStore.currentWallet }
-
-  componentWillUnmount () {
-    $WalletStore._unsubscribe(this)
-  }
-
-  componentDidMount() {
-    $WalletStore._subscribe(this)
-
-    return (() => {  this.getWallets
-
-    return ($Array.isEmpty(this.wallets) ? (() => { return $Window.navigate(`add-wallet`) })() : (() => { return this.getWalletItems })()) })()
-  }
-
   render() {
     return _createElement("div", {
       className: `row`
     }, [_createElement("div", {
       className: `col-md-3`
-    }, [_createElement("br", {}), _createElement($MyWallets, { "wallets": this.walletItems })]), _createElement("div", {
+    }, [_createElement("br", {}), _createElement($MyWallets, {  })]), _createElement("div", {
       className: `col-md-9`
     }, [_createElement("br", {}), _createElement("ul", {
       className: `nav nav-tabs`
@@ -37529,8 +37863,6 @@ class $CreateWallet extends Component {
 
              let created = _3.value
 
-     $Debug.log(created)
-
     return $Window.navigate(`dashboard`) })()
   }
 
@@ -37717,6 +38049,62 @@ $Html_Portals_Body.displayName = "Html.Portals.Body"
 
 $Html_Portals_Body.defaultProps = {
   children: []
+}
+
+class $Unless extends Component {
+  get children () {
+    if (this.props.children != undefined) {
+      return this.props.children
+    } else {
+      return []
+    }
+  }
+
+  get condition () {
+    if (this.props.condition != undefined) {
+      return this.props.condition
+    } else {
+      return true
+    }
+  }
+
+  render() {
+    return (!this.condition ? this.children : [])
+  }
+}
+
+$Unless.displayName = "Unless"
+
+$Unless.defaultProps = {
+  children: [],condition: true
+}
+
+class $If extends Component {
+  get children () {
+    if (this.props.children != undefined) {
+      return this.props.children
+    } else {
+      return []
+    }
+  }
+
+  get condition () {
+    if (this.props.condition != undefined) {
+      return this.props.condition
+    } else {
+      return true
+    }
+  }
+
+  render() {
+    return (this.condition ? this.children : [])
+  }
+}
+
+$If.displayName = "If"
+
+$If.defaultProps = {
+  children: [],condition: true
 }
 
 class $Ui_Loader extends Component {
@@ -38424,7 +38812,7 @@ class $Ui_Checkbox extends Component {
   }
 
   toggle() {
-    return this.onChange($Bool.not(this.checked))
+    return this.onChange(!this.checked)
   }
 
   render() {
@@ -38621,7 +39009,7 @@ class $Ui_Toggle extends Component {
   }
 
   toggle() {
-    return this.onChange($Bool.not(this.checked))
+    return this.onChange(!this.checked)
   }
 
   render() {
@@ -39674,7 +40062,7 @@ $Ui_Slider.defaultProps = {
 
 class $Ui_Input extends Component {
   get showCloseIcon() {
-    return this.showClearIcon && !_compare(this.value, ``) && $Bool.not(this.disabled) && $Bool.not(this.readonly)
+    return this.showClearIcon && !_compare(this.value, ``) && !this.disabled && !this.readonly
   }
 
   get paddingRight() {
