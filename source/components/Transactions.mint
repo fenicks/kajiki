@@ -27,8 +27,12 @@ component Transactions {
     `
   }
 
-  fun reduce(f : Function(a,a,b), array: Array(a)) : b {
-    `array.reduce(f)`
+  fun sum(f : Function(a,a,b), array: Array(a)) : b {
+     if(Array.isEmpty(array)){
+       0
+     } else {
+     `array.reduce(f)`
+     }
   }
 
   fun render : Html {
@@ -38,7 +42,7 @@ component Transactions {
        }>
     </div>
   } where {
-    transactions = Debug.log(aggregateTransactions(currentTransactions))
+    transactions = aggregateTransactions(currentTransactions)
   }
 
   fun renderTransactionGroup (group : GroupedTransaction) : Html {
@@ -80,10 +84,9 @@ component Transactions {
       total = transaction.recipients
                    |> Array.select(\r : Kajiki.Recipient => r.address == address)
                    |> Array.map(\r : Kajiki.Recipient => r.amount)
-                   |> reduce(\a : Number, b : Number => a + b)
+                   |> sum(\a : Number, b : Number => a + b)
 
       Number.toString(total / 100000000)
-
     }
   }
 
