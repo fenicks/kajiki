@@ -1,5 +1,30 @@
+record Send.State {
+  amount : String,
+  fee : String,
+  address : String,
+  password : String
+}
+
 component Send {
   connect WalletStore exposing { currentWallet, currentTransactions }
+
+  state : Send.State { amount = "", fee = "", address="", password=""}
+
+  fun onAmount (event : Html.Event) : Void {
+    next { state | amount = Dom.getValue(event.target) }
+  }
+
+  fun onFee (event : Html.Event) : Void {
+    next { state | fee = Dom.getValue(event.target) }
+  }
+
+  fun onAddress (event : Html.Event) : Void {
+    next { state | address = Dom.getValue(event.target) }
+  }
+
+  fun onPassword (event : Html.Event) : Void {
+    next { state | password = Dom.getValue(event.target) }
+  }
 
   fun render : Html {
     <div class="card border-dark mb-3">
@@ -19,6 +44,7 @@ component Send {
             </label>
 
             <input
+              onInput={onAmount}
               type="text"
               class="form-control"
               id="amount"
@@ -32,6 +58,7 @@ component Send {
             </label>
 
             <input
+              onInput={onFee}
               type="text"
               class="form-control"
               id="fee"
@@ -53,12 +80,38 @@ component Send {
             </label>
 
             <input
+              onInput={onAddress}
               type="text"
               class="form-control"
               id="address"
               aria-describedby="address"
               placeholder="Enter an address"/>
           </div>
+
+          <div class="form-group">
+            <label for="password">
+              <{ "Password" }>
+            </label>
+
+            <input
+              onInput={onPassword}
+              type="password"
+              class="form-control"
+              id="password"
+              aria-describedby="password"
+              placeholder="Enter your password"/>
+          </div>
+
+          <button
+            type="submit"
+            class="btn btn-primary">
+            /* onClick={createWallet}
+            disabled={createButtonState} */
+
+
+            <{ "Send" }>
+
+          </button>
 
         </fieldset>
       </div>

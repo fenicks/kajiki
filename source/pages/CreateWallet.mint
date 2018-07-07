@@ -1,4 +1,4 @@
-record State {
+record CreateWallet.State {
   name : String,
   password : String,
   repeatPassword : String,
@@ -34,7 +34,7 @@ record EncryptedWalletWithName {
 component CreateWallet {
   connect WalletStore exposing { getWallets, storeWallet }
 
-  state : State {
+  state : CreateWallet.State {
     name = "",
     password = "",
     repeatPassword = "",
