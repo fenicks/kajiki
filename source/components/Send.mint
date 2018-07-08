@@ -31,6 +31,12 @@ component Send {
     next { state | showingConfirmation = true }
   }
 
+  fun makeTransaction() : Void {
+    do {
+      txn = {}
+    }
+  }
+
   fun render : Html {
     <div class="card border-dark mb-3">
       <div class="card-header">
@@ -86,6 +92,7 @@ component Send {
       </button>
 
     <button
+      onClick={makeTransaction}
       type="submit"
       class="btn btn-primary">
       <{"Send"}>

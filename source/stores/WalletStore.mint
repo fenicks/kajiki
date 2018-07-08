@@ -29,6 +29,11 @@ record AddressTransactionsResponse {
   status : String
 }
 
+record TransactionResponse {
+  result : Transaction,
+  status : String
+}
+
 record Kajiki.Sender {
   address : String,
   publicKey : String,
@@ -88,6 +93,7 @@ store WalletStore {
   property currentWallet : Maybe(CurrentWallet) = Maybe.nothing()
   property currentTransactions : Array(Kajiki.Transaction) = []
   property config : Config = { network = Target.Network.testNet()}
+  property transaction1 : Maybe(Transaction) = Maybe.nothing() 
 
   fun setNetwork (network : TargetNetwork) : Void {
     do {
@@ -136,24 +142,12 @@ store WalletStore {
         |> Maybe.toResult("Json paring error")
 
       item =
-        decode json as AddressAmountResponse
+        decode json as TransactionResponse
 
-      balances =
-        item.result.pairs
+      txn =
+        item.result
 
-      wallet =
-        wallets
-        |> Array.find(
-          \w : EncryptedWalletWithName => w.address == currentWalletAddressOrFirst)
-        |> Maybe.withDefault(emptyEncryptedWalletWithName)
-
-      cw =
-        {
-          wallet = wallet,
-          balances = balances
-        }
-
-      next { state | currentWallet = Maybe.just(cw) }
+      next { state | transaction1 = Maybe.just(txn) }
     } catch Http.ErrorResponse => error {
       next { state | error = "Could not retrieve remote wallet information" }
     } catch String => error {
