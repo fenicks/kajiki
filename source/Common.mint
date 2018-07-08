@@ -6,4 +6,8 @@ module Common {
      |> Maybe.withDefault("")
  }
 
+ fun compactJson(value : String) : String {
+  `JSON.stringify(JSON.parse(value), null, 0);`
+}
+
 }

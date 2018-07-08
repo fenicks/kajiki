@@ -122,6 +122,47 @@ store WalletStore {
     }
   }
 
+  fun getUnsignedTransaction(transaction : Transaction) : Void {
+    do {
+      jsonTransaction = Json.stringify(encode transaction)
+
+      response =
+      Http.post(getNetwork.url + "/api/v1/transaction/unsigned")
+      |> Http.stringBody(Common.compactJson(jsonTransaction))
+      |> Http.send()
+
+      json =
+        Json.parse(response.body)
+        |> Maybe.toResult("Json paring error")
+
+      item =
+        decode json as AddressAmountResponse
+
+      balances =
+        item.result.pairs
+
+      wallet =
+        wallets
+        |> Array.find(
+          \w : EncryptedWalletWithName => w.address == currentWalletAddressOrFirst)
+        |> Maybe.withDefault(emptyEncryptedWalletWithName)
+
+      cw =
+        {
+          wallet = wallet,
+          balances = balances
+        }
+
+      next { state | currentWallet = Maybe.just(cw) }
+    } catch Http.ErrorResponse => error {
+      next { state | error = "Could not retrieve remote wallet information" }
+    } catch String => error {
+      next { state | error = "Could not parse json response" }
+    } catch Object.Error => error {
+      next { state | error = "could not decode json" }
+    }
+  }
+
   get currentWalletAddressOrFirst : String {
     try {
       first =
