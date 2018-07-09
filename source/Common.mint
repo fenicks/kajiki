@@ -8,6 +8,13 @@ module Common {
 
  fun compactJson(value : String) : String {
   `JSON.stringify(JSON.parse(value), null, 0);`
-}
+ }
+
+ fun walletWithNametoWallet(w : EncryptedWalletWithName) : EncryptedWallet {
+   {source = w.source,
+    ciphertext = w.ciphertext,
+    address = w.address,
+    salt = w.salt}
+   }
 
 }

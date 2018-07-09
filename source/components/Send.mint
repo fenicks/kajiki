@@ -3,13 +3,14 @@ record Send.State {
   fee : String,
   address : String,
   password : String,
-  showingConfirmation : Bool
+  showingConfirmation : Bool,
+  error : String
 }
 
 component Send {
-  connect WalletStore exposing { currentWallet, currentTransactions }
+  connect WalletStore exposing { currentWallet, currentTransactions, getUnsignedTransaction, transaction1, error }
 
-  state : Send.State { amount = "", fee = "0.0001", address="", password="", showingConfirmation=false}
+  state : Send.State { amount = "", fee = "0.0001", address="", password="", showingConfirmation=false, error=""}
 
   fun onAmount (event : Html.Event) : Void {
     next { state | amount = Dom.getValue(event.target) }
@@ -31,14 +32,79 @@ component Send {
     next { state | showingConfirmation = true }
   }
 
-  fun makeTransaction() : Void {
+  fun makeTransaction(event : Html.Event) : Void {
     do {
-      txn = {}
+
+      Debug.log("HERE we go")
+
+      senderWalletWithName = currentWallet
+                     |> Maybe.toResult("Error getting sender wallet!")
+
+      senderWallet = Common.walletWithNametoWallet(senderWalletWithName.wallet)
+      decryptedWallet = Sushi.Wallet.decryptWallet(senderWallet, state.password)
+
+      txn = {
+    id = "",
+    action = "send",
+    senders = [
+      {
+        address = senderWallet.address,
+        publicKey = decryptedWallet.publicKey,
+        amount = state.amount,
+        fee = state.fee,
+        signr = "0",
+        signs = "0"
+      }
+    ],
+    recipients = [
+      {
+        address = state.address,
+        amount = state.amount
+      }
+    ],
+    message = "",
+    token = "SUSHI",
+    prevHash = "0",
+    timestamp = 0,
+    scaled = 1
     }
+
+    unsignedTransaction = getUnsignedTransaction(txn)
+    Debug.log(transaction1)
+
+
+  } catch String => error {
+    next { state | error = error }
+  } catch Wallet.Error => error {
+    case (error) {
+     Wallet.Error::InvalidNetwork => next { state | error = "There was a wallet error: InvalidNetwork" }
+     Wallet.Error::WalletGenerationError => next { state | error = "There was a wallet error: WalletGenerationError" }
+     Wallet.Error::EncryptWalletError => next { state | error = "There was a wallet error: EncryptWalletError" }
+     Wallet.Error::DecryptWalletError => next { state | error = "There was a wallet error: DecryptWalletError" }
+     Wallet.Error::FromWifWalletError => next { state | error = "There was a wallet error: FromWifWalletError" }
+     Wallet.Error::SigningError => next { state | error = "There was a wallet error: SigningError" }
+     Wallet.Error::InvalidAddressError => next { state | error = "There was a wallet error: InvalidAddressError" }
+     Wallet.Error::AddressLengthError => next { state | error = "There was a wallet error: AddressLengthError" }
+     Wallet.Error::MnemonicGenerationError => next { state | error = "There was a wallet error: MnemonicGenerationError" }
+   }
+
   }
+ }
+
+
+
+
+
+
+
+
+
+
 
   fun render : Html {
     <div class="card border-dark mb-3">
+    <div><{state.error}></div>
+    <div><{error}></div>
       <div class="card-header">
         <{ Common.getCurrentWalletName(currentWallet) }>
       </div>

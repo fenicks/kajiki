@@ -93,7 +93,7 @@ store WalletStore {
   property currentWallet : Maybe(CurrentWallet) = Maybe.nothing()
   property currentTransactions : Array(Kajiki.Transaction) = []
   property config : Config = { network = Target.Network.testNet()}
-  property transaction1 : Maybe(Transaction) = Maybe.nothing() 
+  property transaction1 : Maybe(Transaction) = Maybe.nothing()
 
   fun setNetwork (network : TargetNetwork) : Void {
     do {
@@ -130,6 +130,7 @@ store WalletStore {
 
   fun getUnsignedTransaction(transaction : Transaction) : Void {
     do {
+      Debug.log(encode transaction)
       jsonTransaction = Json.stringify(encode transaction)
 
       response =
