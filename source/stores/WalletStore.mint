@@ -30,7 +30,7 @@ record AddressTransactionsResponse {
 }
 
 record TransactionResponse {
-  result : Transaction,
+  result : Kajiki.Transaction,
   status : String
 }
 
@@ -93,7 +93,7 @@ store WalletStore {
   property currentWallet : Maybe(CurrentWallet) = Maybe.nothing()
   property currentTransactions : Array(Kajiki.Transaction) = []
   property config : Config = { network = Target.Network.testNet()}
-  property transaction1 : Maybe(Transaction) = Maybe.nothing()
+  property transaction1 : Maybe(Kajiki.Transaction) = Maybe.nothing()
 
   fun setNetwork (network : TargetNetwork) : Void {
     do {
@@ -128,10 +128,47 @@ store WalletStore {
     }
   }
 
+  fun encodeSender(sender : Sender) : Object {
+    Object.Encode.object(
+        [Object.Encode.field("address", Object.Encode.string(sender.address)),
+        Object.Encode.field("public_key", Object.Encode.string(sender.publicKey)),
+        Object.Encode.field("amount", Object.Encode.string(sender.amount)),
+        Object.Encode.field("fee", Object.Encode.string(sender.fee)),
+        Object.Encode.field("sign_r", Object.Encode.string(sender.signr)),
+        Object.Encode.field("sign_s", Object.Encode.string(sender.signs))]
+        )
+  }
+
+  fun encodeRecipient(r : Recipient) : Object {
+    Object.Encode.object(
+        [Object.Encode.field("address", Object.Encode.string(r.address)),
+        Object.Encode.field("amount", Object.Encode.string(r.amount))]
+    )
+  }
+
+  fun encodeSenders(senders : Array(Sender)) : Array(Object) {
+    senders |> Array.map(encodeSender)
+  }
+
   fun getUnsignedTransaction(transaction : Transaction) : Void {
     do {
-      Debug.log(encode transaction)
-      jsonTransaction = Json.stringify(encode transaction)
+
+      recipients = transaction.recipients
+                   |> Array.map(encodeRecipient)
+
+      encoded = Object.Encode.object(
+           [Object.Encode.field("id",Object.Encode.string("0")),
+           Object.Encode.field("action",Object.Encode.string("send")),
+           Object.Encode.field("senders", Object.Encode.array(encodeSenders(transaction.senders))),
+           Object.Encode.field("recipients",Object.Encode.array(recipients)),
+           Object.Encode.field("message",Object.Encode.string("")),
+           Object.Encode.field("token",Object.Encode.string("SUSHI")),
+           Object.Encode.field("prev_hash",Object.Encode.string("0")),
+           Object.Encode.field("timestamp",Object.Encode.number(0)),
+           Object.Encode.field("scaled",Object.Encode.number(1))]
+           )
+
+      jsonTransaction = Json.stringify(encoded)
 
       response =
       Http.post(getNetwork.url + "/api/v1/transaction/unsigned")
@@ -140,10 +177,14 @@ store WalletStore {
 
       json =
         Json.parse(response.body)
-        |> Maybe.toResult("Json paring error")
+        |> Maybe.toResult("Json parsing error")
+
+       Debug.log(json)
 
       item =
         decode json as TransactionResponse
+
+
 
       txn =
         item.result
