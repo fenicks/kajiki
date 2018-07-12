@@ -36,7 +36,7 @@ record TransactionResponse {
 
 record Kajiki.Sender {
   address : String,
-  publicKey : String,
+  publicKey : String from "public_key",
   amount : Number,
   fee : Number,
   signr : String from "sign_r",

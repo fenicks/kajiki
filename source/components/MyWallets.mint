@@ -35,6 +35,7 @@ component MyWallets {
 
   fun setCurrent (wallet : WalletItem, event : Html.Event) : Void {
     try {
+      Window.navigate("/dashboard")
       setCurrentAddress(wallet.address)
       refreshWalletItems
       getCurrentWallet
