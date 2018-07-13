@@ -29,6 +29,24 @@ routes {
     }
   }
 
+  /dashboard/receive {
+    do {
+      Application.setPage("receive")
+    }
+  }
+
+  /dashboard/transactions {
+    do {
+      Application.setPage("transactions")
+    }
+  }
+
+  /dashboard/backup {
+    do {
+      Application.setPage("backup")
+    }
+  }
+
   * {
     Application.setPage("not_found")
   }

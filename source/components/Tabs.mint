@@ -18,6 +18,7 @@ component Tabs {
      {name = "Send", path = "/dashboard/send"},
      {name = "Receive", path = "/dashboard/receive"},
      {name = "Transactions", path = "/dashboard/transactions"},
+     {name = "Backup", path = "/dashboard/backup"},
     ]
   }
 

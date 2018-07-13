@@ -20,6 +20,18 @@ component Main {
         contents = <DashboardSend/>
       },
       {
+        name = "receive",
+        contents = <DashboardReceive/>
+      },
+      {
+        name = "transactions",
+        contents = <DashboardTransactions/>
+      },
+      {
+        name = "backup",
+        contents = <DashboardBackup/>
+      },
+      {
         name = "not_found",
         contents =
           <div>
