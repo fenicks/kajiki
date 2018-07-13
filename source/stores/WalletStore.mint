@@ -146,45 +146,93 @@ store WalletStore {
     )
   }
 
+  fun encodeKajikiSender(sender : Kajiki.Sender) : Object {
+    Object.Encode.object(
+        [Object.Encode.field("address", Object.Encode.string(sender.address)),
+        Object.Encode.field("public_key", Object.Encode.string(sender.publicKey)),
+        Object.Encode.field("amount", Object.Encode.number(sender.amount)),
+        Object.Encode.field("fee", Object.Encode.number(sender.fee)),
+        Object.Encode.field("sign_r", Object.Encode.string(sender.signr)),
+        Object.Encode.field("sign_s", Object.Encode.string(sender.signs))]
+        )
+  }
+
+  fun encodeKajikiRecipient(r : Kajiki.Recipient) : Object {
+    Object.Encode.object(
+        [Object.Encode.field("address", Object.Encode.string(r.address)),
+        Object.Encode.field("amount", Object.Encode.number(r.amount))]
+    )
+  }
+
   fun encodeSenders(senders : Array(Sender)) : Array(Object) {
     senders |> Array.map(encodeSender)
   }
 
-  fun getUnsignedTransaction(transaction : Transaction) : Void {
+  fun encodeKajikiSenders(senders : Array(Kajiki.Sender)) : Array(Object) {
+    senders |> Array.map(encodeKajikiSender)
+  }
+
+  fun encodeRecipients(recipients : Array(Recipient)) : Array(Object) {
+    recipients |> Array.map(encodeRecipient)
+  }
+
+  fun encodeKajikiRecipients(recipients : Array(Kajiki.Recipient)) : Array(Object) {
+    recipients |> Array.map(encodeKajikiRecipient)
+  }
+
+  fun getTransaction(transaction : Transaction, signed : Bool) : Void {
     do {
 
-      recipients = transaction.recipients
-                   |> Array.map(encodeRecipient)
+       senders = if(signed){
+         encodeKajikiSenders(transaction.senders |> Array.map(Common.toKajikiSender))
+       } else {
+         encodeSenders(transaction.senders)
+       }
+
+      recipients = if(signed){
+          encodeKajikiRecipients(transaction.recipients |> Array.map(Common.toKajikiRecipient))
+        } else {
+          encodeRecipients(transaction.recipients)
+        }
+
+
 
       encoded = Object.Encode.object(
-           [Object.Encode.field("id",Object.Encode.string("0")),
-           Object.Encode.field("action",Object.Encode.string("send")),
-           Object.Encode.field("senders", Object.Encode.array(encodeSenders(transaction.senders))),
+           [Object.Encode.field("id",Object.Encode.string(transaction.id)),
+           Object.Encode.field("action",Object.Encode.string(transaction.action)),
+           Object.Encode.field("senders", Object.Encode.array(senders)),
            Object.Encode.field("recipients",Object.Encode.array(recipients)),
-           Object.Encode.field("message",Object.Encode.string("")),
-           Object.Encode.field("token",Object.Encode.string("SUSHI")),
-           Object.Encode.field("prev_hash",Object.Encode.string("0")),
-           Object.Encode.field("timestamp",Object.Encode.number(0)),
-           Object.Encode.field("scaled",Object.Encode.number(1))]
+           Object.Encode.field("message",Object.Encode.string(transaction.message)),
+           Object.Encode.field("token",Object.Encode.string(transaction.token)),
+           Object.Encode.field("prev_hash",Object.Encode.string(transaction.prevHash)),
+           Object.Encode.field("timestamp",Object.Encode.number(transaction.timestamp)),
+           Object.Encode.field("scaled",Object.Encode.number(transaction.scaled))]
            )
 
-      jsonTransaction = Json.stringify(encoded)
+      jsonTransaction = if(signed){
+          Object.Encode.object([Object.Encode.field("transaction", encoded)])
+        } else {
+          encoded
+        }
+
+      url = if(signed){
+         "/api/v1/transaction"
+      } else {
+         "/api/v1/transaction/unsigned"
+      }
 
       response =
-      Http.post(getNetwork.url + "/api/v1/transaction/unsigned")
-      |> Http.stringBody(Common.compactJson(jsonTransaction))
+      Http.post(getNetwork.url + url)
+      |> Http.stringBody(Common.compactJson(Json.stringify(jsonTransaction)))
       |> Http.send()
 
       json =
         Json.parse(response.body)
         |> Maybe.toResult("Json parsing error")
 
-       Debug.log(json)
 
       item =
         decode json as TransactionResponse
-
-
 
       txn =
         item.result

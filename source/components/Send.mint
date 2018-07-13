@@ -8,7 +8,7 @@ record Send.State {
 }
 
 component Send {
-  connect WalletStore exposing { currentWallet, currentTransactions, getUnsignedTransaction, transaction1, error }
+  connect WalletStore exposing { currentWallet, currentTransactions, getTransaction, transaction1, error }
 
   state : Send.State { amount = "", fee = "0.0001", address="", password="", showingConfirmation=false, error=""}
 
@@ -69,8 +69,24 @@ component Send {
     scaled = 1
     }
 
-    unsignedTransaction = getUnsignedTransaction(txn)
-    Debug.log(transaction1)
+    unsignedTransaction = getTransaction(txn, false)
+
+    fullWallet =
+            Sushi.Wallet.getFullWalletFromWif(decryptedWallet.wif)
+
+    transactionToSign = transaction1 |> Maybe.toResult("Error - can't get transaction to sign")
+
+    signedTransaction =
+                Sushi.Wallet.signTransaction(
+                  fullWallet.privateKey,
+                  Common.kajikiTransactionToTransaction(transactionToSign))
+
+
+    Debug.log(signedTransaction)
+
+    sendSignedTransaction = getTransaction(signedTransaction, true)
+
+
 
 
   } catch String => error {
