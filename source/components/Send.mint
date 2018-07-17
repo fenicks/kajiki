@@ -35,8 +35,6 @@ component Send {
   fun makeTransaction(event : Html.Event) : Void {
     do {
 
-      Debug.log("HERE we go")
-
       senderWalletWithName = currentWallet
                      |> Maybe.toResult("Error getting sender wallet!")
 
@@ -81,13 +79,7 @@ component Send {
                   fullWallet.privateKey,
                   Common.kajikiTransactionToTransaction(transactionToSign))
 
-
-    Debug.log(signedTransaction)
-
     sendSignedTransaction = getTransaction(signedTransaction, true)
-
-
-
 
   } catch String => error {
     next { state | error = error }
@@ -106,16 +98,6 @@ component Send {
 
   }
  }
-
-
-
-
-
-
-
-
-
-
 
   fun render : Html {
     <div class="card border-dark mb-3">
