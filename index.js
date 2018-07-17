@@ -34362,50 +34362,11 @@ $Wallet_Error_InvalidAddressError = Symbol.for(`Wallet_Error_InvalidAddressError
 $Wallet_Error_AddressLengthError = Symbol.for(`Wallet_Error_AddressLengthError`)
 $Wallet_Error_MnemonicGenerationError = Symbol.for(`Wallet_Error_MnemonicGenerationError`)
 
-const $$TokenPair = (input) => {
-  let token = Decoder.field(`token`, Decoder.string)(input)
-  if (token instanceof Err) { return token }
-
-  let amount = Decoder.field(`amount`, Decoder.string)(input)
-  if (amount instanceof Err) { return amount }
-
-  return new Ok({
-    token: token.value,
-    amount: amount.value
-  })
-}
-
-const $$AddressAmount = (input) => {
-  let confirmation = Decoder.field(`confirmation`, Decoder.number)(input)
-  if (confirmation instanceof Err) { return confirmation }
-
-  let pairs = Decoder.field(`pairs`, Decoder.array($$TokenPair))(input)
-  if (pairs instanceof Err) { return pairs }
-
-  return new Ok({
-    confirmation: confirmation.value,
-    pairs: pairs.value
-  })
-}
-
-const $$AddressAmountResponse = (input) => {
-  let result = Decoder.field(`result`, $$AddressAmount)(input)
-  if (result instanceof Err) { return result }
-
-  let status = Decoder.field(`status`, Decoder.string)(input)
-  if (status instanceof Err) { return status }
-
-  return new Ok({
-    result: result.value,
-    status: status.value
-  })
-}
-
 const $$Kajiki_Sender = (input) => {
   let address = Decoder.field(`address`, Decoder.string)(input)
   if (address instanceof Err) { return address }
 
-  let publicKey = Decoder.field(`publicKey`, Decoder.string)(input)
+  let publicKey = Decoder.field(`public_key`, Decoder.string)(input)
   if (publicKey instanceof Err) { return publicKey }
 
   let amount = Decoder.field(`amount`, Decoder.number)(input)
@@ -34481,6 +34442,58 @@ const $$Kajiki_Transaction = (input) => {
     prevHash: prevHash.value,
     timestamp: timestamp.value,
     scaled: scaled.value
+  })
+}
+
+const $$TransactionResponse = (input) => {
+  let result = Decoder.field(`result`, $$Kajiki_Transaction)(input)
+  if (result instanceof Err) { return result }
+
+  let status = Decoder.field(`status`, Decoder.string)(input)
+  if (status instanceof Err) { return status }
+
+  return new Ok({
+    result: result.value,
+    status: status.value
+  })
+}
+
+const $$TokenPair = (input) => {
+  let token = Decoder.field(`token`, Decoder.string)(input)
+  if (token instanceof Err) { return token }
+
+  let amount = Decoder.field(`amount`, Decoder.string)(input)
+  if (amount instanceof Err) { return amount }
+
+  return new Ok({
+    token: token.value,
+    amount: amount.value
+  })
+}
+
+const $$AddressAmount = (input) => {
+  let confirmation = Decoder.field(`confirmation`, Decoder.number)(input)
+  if (confirmation instanceof Err) { return confirmation }
+
+  let pairs = Decoder.field(`pairs`, Decoder.array($$TokenPair))(input)
+  if (pairs instanceof Err) { return pairs }
+
+  return new Ok({
+    confirmation: confirmation.value,
+    pairs: pairs.value
+  })
+}
+
+const $$AddressAmountResponse = (input) => {
+  let result = Decoder.field(`result`, $$AddressAmount)(input)
+  if (result instanceof Err) { return result }
+
+  let status = Decoder.field(`status`, Decoder.string)(input)
+  if (status instanceof Err) { return status }
+
+  return new Ok({
+    result: result.value,
+    status: status.value
   })
 }
 
@@ -34735,6 +34748,74 @@ _program.addRoutes([{
   path: `/`
 }, {
   handler: (() => {
+    (async () => {
+  try {
+     await $Application.setPage(`send`)
+  }
+  catch(_error) {
+    if (_error instanceof DoError) {
+    } else {
+      console.warn(`Unhandled error in do statement`)
+      console.log(_error)
+    }
+  } 
+})()
+  }),
+  mapping: [],
+  path: `/dashboard/send`
+}, {
+  handler: (() => {
+    (async () => {
+  try {
+     await $Application.setPage(`receive`)
+  }
+  catch(_error) {
+    if (_error instanceof DoError) {
+    } else {
+      console.warn(`Unhandled error in do statement`)
+      console.log(_error)
+    }
+  } 
+})()
+  }),
+  mapping: [],
+  path: `/dashboard/receive`
+}, {
+  handler: (() => {
+    (async () => {
+  try {
+     await $Application.setPage(`transactions`)
+  }
+  catch(_error) {
+    if (_error instanceof DoError) {
+    } else {
+      console.warn(`Unhandled error in do statement`)
+      console.log(_error)
+    }
+  } 
+})()
+  }),
+  mapping: [],
+  path: `/dashboard/transactions`
+}, {
+  handler: (() => {
+    (async () => {
+  try {
+     await $Application.setPage(`backup`)
+  }
+  catch(_error) {
+    if (_error instanceof DoError) {
+    } else {
+      console.warn(`Unhandled error in do statement`)
+      console.log(_error)
+    }
+  } 
+})()
+  }),
+  mapping: [],
+  path: `/dashboard/backup`
+}, {
+  handler: (() => {
     $Application.setPage(`not_found`)
   }),
   mapping: [],
@@ -34754,6 +34835,87 @@ const $Target_Network = new(class {
       name: `Local`,
       url: `http://localhost:3000`
     })
+  }
+})
+
+const $Common = new(class {
+  getCurrentWalletName(currentWallet) {
+    return $Maybe.withDefault(``, $Maybe.map(((c) => {
+    return c.wallet.name
+    }), currentWallet))
+  }
+
+  getCurrentWalletAddress(currentWallet) {
+    return $Maybe.withDefault(``, $Maybe.map(((c) => {
+    return c.wallet.address
+    }), currentWallet))
+  }
+
+  compactJson(value) {
+    return JSON.stringify(JSON.parse(value), null, 0);
+  }
+
+  walletWithNametoWallet(w) {
+    return new Record({
+      source: w.source,
+      ciphertext: w.ciphertext,
+      address: w.address,
+      salt: w.salt
+    })
+  }
+
+  toKajikiRecipient(r) {
+    return new Record({
+      address: r.address,
+      amount: $Maybe.withDefault(0, $Number.fromString(r.amount))
+    })
+  }
+
+  toKajikiSender(s) {
+    return new Record({
+      address: s.address,
+      publicKey: s.publicKey,
+      amount: $Maybe.withDefault(0, $Number.fromString(s.amount)),
+      fee: $Maybe.withDefault(0, $Number.fromString(s.fee)),
+      signr: s.signr,
+      signs: s.signs
+    })
+  }
+
+  toSender(s) {
+    return new Record({
+      address: s.address,
+      publicKey: s.publicKey,
+      amount: $Number.toString(s.amount),
+      fee: $Number.toString(s.fee),
+      signr: s.signr,
+      signs: s.signs
+    })
+  }
+
+  toRecipient(r) {
+    return new Record({
+      address: r.address,
+      amount: $Number.toString(r.amount)
+    })
+  }
+
+  kajikiTransactionToTransaction(kt) {
+    return (() => { let getSenders = $Array.map($Common.toSender.bind($Common), kt.senders)
+
+    let getRecipients = $Array.map($Common.toRecipient.bind($Common), kt.recipients)
+
+    return new Record({
+      id: kt.id,
+      action: kt.action,
+      senders: getSenders,
+      recipients: getRecipients,
+      message: kt.message,
+      token: kt.token,
+      prevHash: kt.prevHash,
+      timestamp: kt.timestamp,
+      scaled: kt.scaled
+    }) })()
   }
 })
 
@@ -36453,7 +36615,7 @@ const $WalletStore = new (class extends Store {
     this.props = {
         wallets: [],walletItems: [],error: ``,currentWalletAddress: $Maybe.nothing(),currentWallet: $Maybe.nothing(),currentTransactions: [],config: new Record({
       network: $Target_Network.testNet()
-    })
+    }),transaction1: $Maybe.nothing()
     }
   }
 
@@ -36515,6 +36677,14 @@ const $WalletStore = new (class extends Store {
     }
   }
 
+  get transaction1 () {
+    if (this.props.transaction1 != undefined) {
+      return this.props.transaction1
+    } else {
+      return $Maybe.nothing()
+    }
+  }
+
   get state () {
     return {
     wallets: this.wallets,
@@ -36523,7 +36693,8 @@ const $WalletStore = new (class extends Store {
     currentWalletAddress: this.currentWalletAddress,
     currentWallet: this.currentWallet,
     currentTransactions: this.currentTransactions,
-    config: this.config
+    config: this.config,
+    transaction1: this.transaction1
     }
   }
 
@@ -36866,6 +37037,110 @@ const $WalletStore = new (class extends Store {
     return new Promise((_resolve) => {
       this.setState(_update(this.state, { currentWalletAddress: $Maybe.just(address) }), _resolve)
     })
+  }
+
+  encodeSender(sender) {
+    return $Object_Encode.object([$Object_Encode.field(`address`, $Object_Encode.string(sender.address)), $Object_Encode.field(`public_key`, $Object_Encode.string(sender.publicKey)), $Object_Encode.field(`amount`, $Object_Encode.string(sender.amount)), $Object_Encode.field(`fee`, $Object_Encode.string(sender.fee)), $Object_Encode.field(`sign_r`, $Object_Encode.string(sender.signr)), $Object_Encode.field(`sign_s`, $Object_Encode.string(sender.signs))])
+  }
+
+  encodeRecipient(r) {
+    return $Object_Encode.object([$Object_Encode.field(`address`, $Object_Encode.string(r.address)), $Object_Encode.field(`amount`, $Object_Encode.string(r.amount))])
+  }
+
+  encodeKajikiSender(sender) {
+    return $Object_Encode.object([$Object_Encode.field(`address`, $Object_Encode.string(sender.address)), $Object_Encode.field(`public_key`, $Object_Encode.string(sender.publicKey)), $Object_Encode.field(`amount`, $Object_Encode.number(sender.amount)), $Object_Encode.field(`fee`, $Object_Encode.number(sender.fee)), $Object_Encode.field(`sign_r`, $Object_Encode.string(sender.signr)), $Object_Encode.field(`sign_s`, $Object_Encode.string(sender.signs))])
+  }
+
+  encodeKajikiRecipient(r) {
+    return $Object_Encode.object([$Object_Encode.field(`address`, $Object_Encode.string(r.address)), $Object_Encode.field(`amount`, $Object_Encode.number(r.amount))])
+  }
+
+  encodeSenders(senders) {
+    return $Array.map($WalletStore.encodeSender.bind($WalletStore), senders)
+  }
+
+  encodeKajikiSenders(senders) {
+    return $Array.map($WalletStore.encodeKajikiSender.bind($WalletStore), senders)
+  }
+
+  encodeRecipients(recipients) {
+    return $Array.map($WalletStore.encodeRecipient.bind($WalletStore), recipients)
+  }
+
+  encodeKajikiRecipients(recipients) {
+    return $Array.map($WalletStore.encodeKajikiRecipient.bind($WalletStore), recipients)
+  }
+
+  getTransaction(transaction, signed) {
+    return (async () => {
+      try {
+        let senders = await (signed ? $WalletStore.encodeKajikiSenders.bind($WalletStore)($Array.map($Common.toKajikiSender.bind($Common), transaction.senders)) : $WalletStore.encodeSenders.bind($WalletStore)(transaction.senders))
+
+    let recipients = await (signed ? $WalletStore.encodeKajikiRecipients.bind($WalletStore)($Array.map($Common.toKajikiRecipient.bind($Common), transaction.recipients)) : $WalletStore.encodeRecipients.bind($WalletStore)(transaction.recipients))
+
+    let encoded = await $Object_Encode.object([$Object_Encode.field(`id`, $Object_Encode.string(transaction.id)), $Object_Encode.field(`action`, $Object_Encode.string(transaction.action)), $Object_Encode.field(`senders`, $Object_Encode.array(senders)), $Object_Encode.field(`recipients`, $Object_Encode.array(recipients)), $Object_Encode.field(`message`, $Object_Encode.string(transaction.message)), $Object_Encode.field(`token`, $Object_Encode.string(transaction.token)), $Object_Encode.field(`prev_hash`, $Object_Encode.string(transaction.prevHash)), $Object_Encode.field(`timestamp`, $Object_Encode.number(transaction.timestamp)), $Object_Encode.field(`scaled`, $Object_Encode.number(transaction.scaled))])
+
+    let jsonTransaction = await (signed ? $Object_Encode.object([$Object_Encode.field(`transaction`, encoded)]) : encoded)
+
+    let url = await (signed ? `/api/v1/transaction` : `/api/v1/transaction/unsigned`)
+
+    let response = await (async ()=> {
+      try {
+        return await $Http.send($Http.stringBody($Common.compactJson($Json.stringify(jsonTransaction)), $Http.post(this.getNetwork.url + url)))
+      } catch(_error) {
+        let error = _error;
+     new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: `Could not retrieve remote wallet information` }), _resolve)
+    })
+
+        throw new DoError
+      }
+    })()
+
+    let _6 = $Maybe.toResult(`Json parsing error`, $Json.parse(response.body))
+
+    if (_6 instanceof Err) {
+      let _error = _6.value
+
+      let error = _error;
+     new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: `Could not parse json response` }), _resolve)
+    })
+
+      throw new DoError
+    }
+
+    let json = _6.value
+
+    let _7 = $$TransactionResponse(json)
+
+    if (_7 instanceof Err) {
+      let _error = _7.value
+
+      let error = _error;
+     new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: `could not decode json` }), _resolve)
+    })
+
+      throw new DoError
+    }
+
+    let item = _7.value
+
+    let txn = await item.result
+
+     await new Promise((_resolve) => {
+      this.setState(_update(this.state, { transaction1: $Maybe.just(txn) }), _resolve)
+    })
+      }
+      catch(_error) {
+        if (_error instanceof DoError) {
+        } else {
+          console.warn(`Unhandled error in do statement`)
+          console.log(_error)
+        }
+      } 
+    })()
   }
 
   getWalletBalance(w) {
@@ -37283,6 +37558,63 @@ class $Transactions extends Component {
 
 $Transactions.displayName = "Transactions"
 
+class $Tabs extends Component {
+  get currentTab () {
+    if (this.props.currentTab != undefined) {
+      return this.props.currentTab
+    } else {
+      return new Record({
+      name: `Sumary`,
+      path: `/dashboard`
+    })
+    }
+  }
+
+  render() {
+    let tabs = [new Record({
+      name: `Summary`,
+      path: `/dashboard`
+    }), new Record({
+      name: `Send`,
+      path: `/dashboard/send`
+    }), new Record({
+      name: `Receive`,
+      path: `/dashboard/receive`
+    }), new Record({
+      name: `Transactions`,
+      path: `/dashboard/transactions`
+    }), new Record({
+      name: `Backup`,
+      path: `/dashboard/backup`
+    })]
+
+    return _createElement("ul", {
+      className: `nav nav-tabs`
+    }, [$Array.map(this.renderTab.bind(this), tabs)])
+  }
+
+  renderTab(tab) {
+    let active = (_compare(tab, this.currentTab) ? `active` : ``)
+
+    return _createElement("li", {
+      className: `nav-item`
+    }, [_createElement("a", {
+      "data-toggle": `tab`,
+      "href": tab.path,
+      className: `nav-link ` + active
+    }, [tab.name])])
+  }
+}
+
+$Tabs.displayName = "Tabs"
+
+$Tabs.defaultProps = {
+  currentTab: new Record({
+    name: `Sumary`,
+    path: `/dashboard`
+  })
+}
+
 class $Layout extends Component {
   get nav() {
     return _createElement("nav", {
@@ -37387,7 +37719,9 @@ class $MyWallets extends Component {
   }
 
   setCurrent(wallet, event) {
-    return (() => {  this.setCurrentAddress.bind(this)(wallet.address)
+    return (() => {  $Window.navigate(`/dashboard`)
+
+     this.setCurrentAddress.bind(this)(wallet.address)
 
      this.refreshWalletItems
 
@@ -37526,6 +37860,14 @@ class $ChooseNetwork extends Component {
 
 $ChooseNetwork.displayName = "ChooseNetwork"
 
+class $Backup extends Component {
+  render() {
+    return _createElement("div", {}, [`BACKUP`])
+  }
+}
+
+$Backup.displayName = "Backup"
+
 class $Summary extends Component {
   get currentWallet () { return $WalletStore.currentWallet }
 
@@ -37542,10 +37884,6 @@ class $Summary extends Component {
   }
 
   render() {
-    let name = $Maybe.withDefault(``, $Maybe.map(((c) => {
-    return c.wallet.name
-    }), this.currentWallet))
-
     let balances = $Maybe.withDefault([], $Maybe.map(((c) => {
     return c.balances
     }), this.currentWallet))
@@ -37554,7 +37892,7 @@ class $Summary extends Component {
       className: `card text-white bg-primary mb-3`
     }, [_createElement("div", {
       className: `card-header`
-    }, [name]), _createElement("div", {
+    }, [$Common.getCurrentWalletName(this.currentWallet)]), _createElement("div", {
       className: `card-body`
     }, [this.renderSushiBalance.bind(this)(balances), this.renderTokenBalances.bind(this)(balances)])]), _createElement($Transactions, {  })])
   }
@@ -37613,7 +37951,457 @@ class $Summary extends Component {
 
 $Summary.displayName = "Summary"
 
-class $Dashboard extends Component {
+class $Send extends Component {
+  constructor(props) {
+    super(props)
+    this.state = new Record({
+      amount: ``,
+      fee: `0.0001`,
+      address: ``,
+      password: ``,
+      showingConfirmation: false,
+      error: ``
+    })
+  }
+
+  get renderConfirmation() {
+    return _createElement("div", {}, [_createElement("div", {
+      className: `alert alert-primary`
+    }, [_createElement("h4", {}, [`Transaction summary`]), _createElement("p", {}, [`You are sending the following:`]), _createElement("table", {
+      className: `table table-hover`
+    }, [_createElement("tr", {}, [_createElement("th", {}, [`To address: `]), _createElement("th", {}, [this.state.address])]), _createElement("tr", {}, [_createElement("th", {}, [`Amount: `]), _createElement("th", {}, [this.asNumber.bind(this)(this.state.amount)])]), _createElement("tr", {}, [_createElement("th", {}, [`Fee: `]), _createElement("th", {}, [this.asNumber.bind(this)(this.state.fee)])]), _createElement("tr", {}, [_createElement("th", {}, [`Total: `]), _createElement("th", {}, [this.calculateTotal.bind(this)()])])])]), _createElement("button", {
+      "onClick": (event => (this.goBack.bind(this))(_normalizeEvent(event))),
+      "type": `submit`,
+      className: `btn btn-outline-primary`
+    }, [`Cancel`]), _createElement("button", {
+      "onClick": (event => (this.makeTransaction.bind(this))(_normalizeEvent(event))),
+      "type": `submit`,
+      className: `btn btn-primary`
+    }, [`Send`])])
+  }
+
+  get renderSendForm() {
+    return _createElement("fieldset", {}, [_createElement("div", {
+      className: `form-group`
+    }, [_createElement("label", {
+      "for": `amount`
+    }, [`Amount`]), _createElement("input", {
+      "onInput": (event => (this.onAmount.bind(this))(_normalizeEvent(event))),
+      "value": this.state.amount,
+      "type": `text`,
+      "id": `amount`,
+      "aria-describedby": `amount`,
+      "placeholder": `Enter an amount`,
+      className: `form-control`
+    })]), _createElement("div", {
+      className: `form-group`
+    }, [_createElement("label", {
+      "for": `fee`
+    }, [`Fee`]), _createElement("input", {
+      "onInput": (event => (this.onFee.bind(this))(_normalizeEvent(event))),
+      "type": `text`,
+      "id": `fee`,
+      "aria-describedby": `fee`,
+      "value": this.state.fee,
+      "placeholder": `Enter a fee`,
+      className: `form-control`
+    }), _createElement("small", {
+      "id": `fee`,
+      className: `form-text text-muted`
+    }, [`The minimum fee is 0.0001 SUSHI`])]), _createElement("div", {
+      className: `form-group`
+    }, [_createElement("label", {
+      "for": `address`
+    }, [`Address`]), _createElement("input", {
+      "onInput": (event => (this.onAddress.bind(this))(_normalizeEvent(event))),
+      "value": this.state.address,
+      "type": `text`,
+      "id": `address`,
+      "aria-describedby": `address`,
+      "placeholder": `Enter an address`,
+      className: `form-control`
+    })]), _createElement("div", {
+      className: `form-group`
+    }, [_createElement("label", {
+      "for": `password`
+    }, [`Password`]), _createElement("input", {
+      "onInput": (event => (this.onPassword.bind(this))(_normalizeEvent(event))),
+      "value": this.state.password,
+      "type": `password`,
+      "id": `password`,
+      "aria-describedby": `password`,
+      "placeholder": `Enter your password`,
+      className: `form-control`
+    })]), _createElement("button", {
+      "type": `submit`,
+      "onClick": (event => (this.showConfirmation.bind(this))(_normalizeEvent(event))),
+      className: `btn btn-primary`
+    }, [`Send`])])
+  }
+
+  get currentWallet () { return $WalletStore.currentWallet }
+
+  get currentTransactions () { return $WalletStore.currentTransactions }
+
+  getTransaction (...params) { return $WalletStore.getTransaction(...params) }
+
+  get transaction1 () { return $WalletStore.transaction1 }
+
+  get error () { return $WalletStore.error }
+
+  componentWillUnmount () {
+    $WalletStore._unsubscribe(this)
+  }
+
+  componentDidMount () {
+    $WalletStore._subscribe(this)
+  }
+
+  onAmount(event) {
+    return new Promise((_resolve) => {
+      this.setState(_update(this.state, { amount: $Dom.getValue(event.target) }), _resolve)
+    })
+  }
+
+  onFee(event) {
+    return new Promise((_resolve) => {
+      this.setState(_update(this.state, { fee: $Dom.getValue(event.target) }), _resolve)
+    })
+  }
+
+  onAddress(event) {
+    return new Promise((_resolve) => {
+      this.setState(_update(this.state, { address: $Dom.getValue(event.target) }), _resolve)
+    })
+  }
+
+  onPassword(event) {
+    return new Promise((_resolve) => {
+      this.setState(_update(this.state, { password: $Dom.getValue(event.target) }), _resolve)
+    })
+  }
+
+  showConfirmation(event) {
+    return new Promise((_resolve) => {
+      this.setState(_update(this.state, { showingConfirmation: true }), _resolve)
+    })
+  }
+
+  makeTransaction(event) {
+    return (async () => {
+      try {
+        let _0 = $Maybe.toResult(`Error getting sender wallet!`, this.currentWallet)
+
+    if (_0 instanceof Err) {
+      let _error = _0.value
+
+      let error = _error;
+     new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: error }), _resolve)
+    })
+
+      throw new DoError
+    }
+
+    let senderWalletWithName = _0.value
+
+    let senderWallet = await $Common.walletWithNametoWallet(senderWalletWithName.wallet)
+
+    let _2 = $Sushi_Wallet.decryptWallet(senderWallet, this.state.password)
+
+    if (_2 instanceof Err) {
+      let _error = _2.value
+
+      let error = _error;
+     (() => {
+      let __condition = error
+
+       if (_compare(__condition, $Wallet_Error_InvalidNetwork)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: InvalidNetwork` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_WalletGenerationError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: WalletGenerationError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_EncryptWalletError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: EncryptWalletError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_DecryptWalletError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: DecryptWalletError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_FromWifWalletError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: FromWifWalletError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_SigningError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: SigningError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_InvalidAddressError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: InvalidAddressError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_AddressLengthError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: AddressLengthError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_MnemonicGenerationError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: MnemonicGenerationError` }), _resolve)
+      })
+      }
+    })()
+
+      throw new DoError
+    }
+
+    let decryptedWallet = _2.value
+
+    let txn = await new Record({
+      id: ``,
+      action: `send`,
+      senders: [new Record({
+        address: senderWallet.address,
+        publicKey: decryptedWallet.publicKey,
+        amount: this.state.amount,
+        fee: this.state.fee,
+        signr: `0`,
+        signs: `0`
+      })],
+      recipients: [new Record({
+        address: this.state.address,
+        amount: this.state.amount
+      })],
+      message: ``,
+      token: `SUSHI`,
+      prevHash: `0`,
+      timestamp: 0,
+      scaled: 1
+    })
+
+    let unsignedTransaction = await this.getTransaction.bind(this)(txn, false)
+
+    let _5 = $Sushi_Wallet.getFullWalletFromWif(decryptedWallet.wif)
+
+    if (_5 instanceof Err) {
+      let _error = _5.value
+
+      let error = _error;
+     (() => {
+      let __condition = error
+
+       if (_compare(__condition, $Wallet_Error_InvalidNetwork)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: InvalidNetwork` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_WalletGenerationError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: WalletGenerationError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_EncryptWalletError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: EncryptWalletError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_DecryptWalletError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: DecryptWalletError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_FromWifWalletError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: FromWifWalletError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_SigningError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: SigningError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_InvalidAddressError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: InvalidAddressError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_AddressLengthError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: AddressLengthError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_MnemonicGenerationError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: MnemonicGenerationError` }), _resolve)
+      })
+      }
+    })()
+
+      throw new DoError
+    }
+
+    let fullWallet = _5.value
+
+    let _6 = $Maybe.toResult(`Error - can't get transaction to sign`, this.transaction1)
+
+    if (_6 instanceof Err) {
+      let _error = _6.value
+
+      let error = _error;
+     new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: error }), _resolve)
+    })
+
+      throw new DoError
+    }
+
+    let transactionToSign = _6.value
+
+    let _7 = $Sushi_Wallet.signTransaction(fullWallet.privateKey, $Common.kajikiTransactionToTransaction(transactionToSign))
+
+    if (_7 instanceof Err) {
+      let _error = _7.value
+
+      let error = _error;
+     (() => {
+      let __condition = error
+
+       if (_compare(__condition, $Wallet_Error_InvalidNetwork)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: InvalidNetwork` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_WalletGenerationError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: WalletGenerationError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_EncryptWalletError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: EncryptWalletError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_DecryptWalletError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: DecryptWalletError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_FromWifWalletError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: FromWifWalletError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_SigningError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: SigningError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_InvalidAddressError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: InvalidAddressError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_AddressLengthError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: AddressLengthError` }), _resolve)
+      })
+      } else if (_compare(__condition, $Wallet_Error_MnemonicGenerationError)) {
+        return new Promise((_resolve) => {
+        this.setState(_update(this.state, { error: `There was a wallet error: MnemonicGenerationError` }), _resolve)
+      })
+      }
+    })()
+
+      throw new DoError
+    }
+
+    let signedTransaction = _7.value
+
+    let sendSignedTransaction = await this.getTransaction.bind(this)(signedTransaction, true)
+      }
+      catch(_error) {
+        if (_error instanceof DoError) {
+        } else {
+          console.warn(`Unhandled error in do statement`)
+          console.log(_error)
+        }
+      } 
+    })()
+  }
+
+  render() {
+    return _createElement("div", {
+      className: `card border-dark mb-3`
+    }, [_createElement("div", {}, [this.state.error]), _createElement("div", {}, [this.error]), _createElement("div", {
+      className: `card-header`
+    }, [$Common.getCurrentWalletName(this.currentWallet)]), _createElement("div", {
+      className: `card-body`
+    }, [_createElement("h4", {
+      className: `card-title`
+    }, [`Send tokens`]), (this.state.showingConfirmation ? this.renderConfirmation : this.renderSendForm)])])
+  }
+
+  calculateTotal() {
+    let fee = $Maybe.withDefault(0, $Number.fromString(this.state.fee))
+
+    let amount = $Maybe.withDefault(0, $Number.fromString(this.state.amount))
+
+    return $Number.toFixed(8, (fee + amount))
+  }
+
+  goBack(event) {
+    return new Promise((_resolve) => {
+      this.setState(_update(this.state, { showingConfirmation: false }), _resolve)
+    })
+  }
+
+  asNumber(value) {
+    let n = $Maybe.withDefault(0, $Number.fromString(value))
+
+    return $Number.toFixed(8, n)
+  }
+}
+
+$Send.displayName = "Send"
+
+class $Receive extends Component {
+  get currentWallet () { return $WalletStore.currentWallet }
+
+  componentWillUnmount () {
+    $WalletStore._unsubscribe(this)
+  }
+
+  componentDidMount () {
+    $WalletStore._subscribe(this)
+  }
+
+  copyAddress(event) {
+    return (() => {
+          var copyText = document.getElementById("my-address");
+          copyText.select();
+          document.execCommand("copy");
+        })()
+  }
+
+  generateQrCode(address) {
+    return new QRious({value: address, size: 150}).toDataURL();
+  }
+
+  render() {
+    return _createElement("div", {
+      className: `card border-dark mb-3`
+    }, [_createElement("div", {
+      className: `card-header`
+    }, [$Common.getCurrentWalletName(this.currentWallet)]), _createElement("div", {
+      className: `card-body`
+    }, [_createElement("h4", {
+      className: `card-title`
+    }, [`Receive tokens`]), _createElement("div", {
+      "id": `my-address-qrcode`
+    }, [_createElement("img", {
+      "src": this.generateQrCode.bind(this)($Common.getCurrentWalletAddress(this.currentWallet))
+    })]), _createElement("br", {}), `Your address is: `, _createElement("br", {}), _createElement("input", {
+      "id": `my-address`,
+      "size": `80`,
+      "value": $Common.getCurrentWalletAddress(this.currentWallet)
+    }), _createElement("br", {}), _createElement("br", {}), _createElement("button", {
+      "onClick": (event => (this.copyAddress.bind(this))(_normalizeEvent(event))),
+      className: `btn btn-outline-info`
+    }, [`Copy address`])])])
+  }
+}
+
+$Receive.displayName = "Receive"
+
+class $DashboardTransactions extends Component {
   render() {
     return _createElement("div", {
       className: `row`
@@ -37621,37 +38409,31 @@ class $Dashboard extends Component {
       className: `col-md-3`
     }, [_createElement("br", {}), _createElement($MyWallets, {  })]), _createElement("div", {
       className: `col-md-9`
-    }, [_createElement("br", {}), _createElement("ul", {
-      className: `nav nav-tabs`
-    }, [_createElement("li", {
-      className: `nav-item`
-    }, [_createElement("a", {
-      "data-toggle": `tab`,
-      "href": `#home`,
-      className: `nav-link active`
-    }, [`Summary`])]), _createElement("li", {
-      className: `nav-item`
-    }, [_createElement("a", {
-      "data-toggle": `tab`,
-      "href": `#profile`,
-      className: `nav-link`
-    }, [`Send`])]), _createElement("li", {
-      className: `nav-item`
-    }, [_createElement("a", {
-      "data-toggle": `tab`,
-      "href": `#profile`,
-      className: `nav-link`
-    }, [`Receive`])]), _createElement("li", {
-      className: `nav-item`
-    }, [_createElement("a", {
-      "data-toggle": `tab`,
-      "href": `#profile`,
-      className: `nav-link`
-    }, [`Transactions`])])]), _createElement("div", {}, [_createElement("br", {}), _createElement($Summary, {  })])])])
+    }, [_createElement("br", {}), _createElement($Tabs, { "currentTab": new Record({
+      name: `Transactions`,
+      path: `/dashboard/transactions`
+    }) }), _createElement("div", {}, [_createElement("br", {}), _createElement($Transactions, {  })])])])
   }
 }
 
-$Dashboard.displayName = "Dashboard"
+$DashboardTransactions.displayName = "DashboardTransactions"
+
+class $DashboardReceive extends Component {
+  render() {
+    return _createElement("div", {
+      className: `row`
+    }, [_createElement("div", {
+      className: `col-md-3`
+    }, [_createElement("br", {}), _createElement($MyWallets, {  })]), _createElement("div", {
+      className: `col-md-9`
+    }, [_createElement("br", {}), _createElement($Tabs, { "currentTab": new Record({
+      name: `Receive`,
+      path: `/dashboard/receive`
+    }) }), _createElement("div", {}, [_createElement("br", {}), _createElement($Receive, {  })])])])
+  }
+}
+
+$DashboardReceive.displayName = "DashboardReceive"
 
 class $AddWallet extends Component {
   render() {
@@ -37662,6 +38444,23 @@ class $AddWallet extends Component {
 }
 
 $AddWallet.displayName = "AddWallet"
+
+class $DashboardSummary extends Component {
+  render() {
+    return _createElement("div", {
+      className: `row`
+    }, [_createElement("div", {
+      className: `col-md-3`
+    }, [_createElement("br", {}), _createElement($MyWallets, {  })]), _createElement("div", {
+      className: `col-md-9`
+    }, [_createElement("br", {}), _createElement($Tabs, { "currentTab": new Record({
+      name: `Summary`,
+      path: `/dashboard`
+    }) }), _createElement("div", {}, [_createElement("br", {}), _createElement($Summary, {  })])])])
+  }
+}
+
+$DashboardSummary.displayName = "DashboardSummary"
 
 class $CreateWallet extends Component {
   constructor(props) {
@@ -37863,7 +38662,7 @@ class $CreateWallet extends Component {
 
              let created = _3.value
 
-    return $Window.navigate(`dashboard`) })()
+    return $Window.navigate(`/dashboard`) })()
   }
 
   scoreText(score) {
@@ -37989,6 +38788,40 @@ class $CreateWallet extends Component {
 
 $CreateWallet.displayName = "CreateWallet"
 
+class $DashboardBackup extends Component {
+  render() {
+    return _createElement("div", {
+      className: `row`
+    }, [_createElement("div", {
+      className: `col-md-3`
+    }, [_createElement("br", {}), _createElement($MyWallets, {  })]), _createElement("div", {
+      className: `col-md-9`
+    }, [_createElement("br", {}), _createElement($Tabs, { "currentTab": new Record({
+      name: `Backup`,
+      path: `/dashboard/backup`
+    }) }), _createElement("div", {}, [_createElement("br", {}), _createElement($Backup, {  })])])])
+  }
+}
+
+$DashboardBackup.displayName = "DashboardBackup"
+
+class $DashboardSend extends Component {
+  render() {
+    return _createElement("div", {
+      className: `row`
+    }, [_createElement("div", {
+      className: `col-md-3`
+    }, [_createElement("br", {}), _createElement($MyWallets, {  })]), _createElement("div", {
+      className: `col-md-9`
+    }, [_createElement("br", {}), _createElement($Tabs, { "currentTab": new Record({
+      name: `Send`,
+      path: `/dashboard/send`
+    }) }), _createElement("div", {}, [_createElement("br", {}), _createElement($Send, {  })])])])
+  }
+}
+
+$DashboardSend.displayName = "DashboardSend"
+
 class $Main extends Component {
   get pages() {
     return [new Record({
@@ -37999,7 +38832,19 @@ class $Main extends Component {
       contents: _createElement($CreateWallet, {  })
     }), new Record({
       name: `dashboard`,
-      contents: _createElement($Dashboard, {  })
+      contents: _createElement($DashboardSummary, {  })
+    }), new Record({
+      name: `send`,
+      contents: _createElement($DashboardSend, {  })
+    }), new Record({
+      name: `receive`,
+      contents: _createElement($DashboardReceive, {  })
+    }), new Record({
+      name: `transactions`,
+      contents: _createElement($DashboardTransactions, {  })
+    }), new Record({
+      name: `backup`,
+      contents: _createElement($DashboardBackup, {  })
     }), new Record({
       name: `not_found`,
       contents: _createElement("div", {}, [`404`])
