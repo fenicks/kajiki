@@ -350,6 +350,7 @@ component CreateWallet {
             class="form-control"
             id="walletName"
             aria-describedby="walletName"
+            maxLength="100"
             placeholder="Enter a name for this wallet"/>
         </div>
 
@@ -367,6 +368,7 @@ component CreateWallet {
               class="form-control"
               id="password"
               placeholder="Password"
+              maxLength="100"
               aria-describedby="basic-addon2"/>
 
             <div class="input-group-append">
@@ -401,6 +403,7 @@ component CreateWallet {
               class="form-control"
               id="repeatPassword"
               placeholder="Repeat password"
+              maxLength="100"
               aria-describedby="basic-addon2"/>
 
             <div class="input-group-append">
