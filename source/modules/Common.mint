@@ -1,4 +1,15 @@
 module Common {
+
+  fun redirectToAddWallet(wallets : Array(EncryptedWalletWithName)) : Void {
+    do {
+      if(Array.isEmpty(wallets)){
+        Window.navigate("/add-wallet")
+      } else {
+        void
+      }
+    }
+  }
+
   fun getCurrentWalletName (currentWallet : Maybe(CurrentWallet)) : String {
     currentWallet
     |> Maybe.map(\c : CurrentWallet => c.wallet.name)

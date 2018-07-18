@@ -1,4 +1,11 @@
 component DashboardReceive {
+
+  connect WalletStore exposing { wallets }
+
+  fun componentDidMount : Void {
+    Common.redirectToAddWallet(wallets)
+  }
+  
   fun render : Html {
     <div class="row">
       <div class="col-md-3">
