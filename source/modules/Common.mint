@@ -24,6 +24,16 @@ module Common {
     }
   }
 
+  fun walletToWalletWithName(w : EncryptedWallet, name : String) : EncryptedWalletWithName {
+    {
+      name = name,
+      source = w.source,
+      ciphertext = w.ciphertext,
+      address = w.address,
+      salt = w.salt
+    }
+  }
+
   fun toKajikiRecipient (r : Recipient) : Kajiki.Recipient {
     {
       address = r.address,

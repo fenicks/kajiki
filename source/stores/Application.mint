@@ -1,10 +1,12 @@
 store Application {
   property page : String = ""
 
-  fun setPage (a : String) : Void {
+  fun setPage (page : String) : Void {
     do {
       Http.abortAll()
-      next { state | page = a }
+      next { state | page = page }
     }
   }
+
+
 }
