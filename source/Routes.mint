@@ -11,6 +11,12 @@ routes {
     }
   }
 
+  /import-wallet {
+    do {
+      Application.setPage("import-wallet")
+    }
+  }
+
   /dashboard {
     do {
       Application.setPage("dashboard")

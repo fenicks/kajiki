@@ -12,6 +12,10 @@ component Main {
         contents = <CreateWallet/>
       },
       {
+        name = "import-wallet",
+        contents = <ImportWallet/>
+      },
+      {
         name = "dashboard",
         contents = <DashboardSummary/>
       },
