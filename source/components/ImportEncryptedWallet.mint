@@ -60,6 +60,7 @@ component ImportEncryptedWallet {
         do {
           storeWallet(walletWithName)
           next { state | error = "" }
+          Window.navigate("/dashboard")
         } catch Storage.Error => error {
           next { state | error = "could not store imported wallet" }
         }

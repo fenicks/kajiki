@@ -52,7 +52,7 @@ component ImportUnencryptedWallet {
       wallet =
         decoded
 
-      next { state | wallet = Maybe.just(wallet) }
+      next { state | wallet = Maybe.just(wallet), error="" }
     } catch String => error {
       next { state | error = error }
     } catch Object.Error => error {
@@ -105,7 +105,7 @@ component ImportUnencryptedWallet {
           <{ showError }>
 
           <{
-            if (readyToImport) {
+            if (readyToImport && state.error == "") {
               <CreateEncryptedWallet
                 title="Import unencrypted wallet"
                 cancelUrl="/import-wallet"
