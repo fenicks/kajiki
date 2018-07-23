@@ -34362,6 +34362,44 @@ $Wallet_Error_InvalidAddressError = Symbol.for(`Wallet_Error_InvalidAddressError
 $Wallet_Error_AddressLengthError = Symbol.for(`Wallet_Error_AddressLengthError`)
 $Wallet_Error_MnemonicGenerationError = Symbol.for(`Wallet_Error_MnemonicGenerationError`)
 
+const $$Wallet = (input) => {
+  let publicKey = Decoder.field(`public_key`, Decoder.string)(input)
+  if (publicKey instanceof Err) { return publicKey }
+
+  let wif = Decoder.field(`wif`, Decoder.string)(input)
+  if (wif instanceof Err) { return wif }
+
+  let address = Decoder.field(`address`, Decoder.string)(input)
+  if (address instanceof Err) { return address }
+
+  return new Ok({
+    publicKey: publicKey.value,
+    wif: wif.value,
+    address: address.value
+  })
+}
+
+const $$EncryptedWallet = (input) => {
+  let source = Decoder.field(`source`, Decoder.string)(input)
+  if (source instanceof Err) { return source }
+
+  let ciphertext = Decoder.field(`ciphertext`, Decoder.string)(input)
+  if (ciphertext instanceof Err) { return ciphertext }
+
+  let address = Decoder.field(`address`, Decoder.string)(input)
+  if (address instanceof Err) { return address }
+
+  let salt = Decoder.field(`salt`, Decoder.string)(input)
+  if (salt instanceof Err) { return salt }
+
+  return new Ok({
+    source: source.value,
+    ciphertext: ciphertext.value,
+    address: address.value,
+    salt: salt.value
+  })
+}
+
 const $$Kajiki_Sender = (input) => {
   let address = Decoder.field(`address`, Decoder.string)(input)
   if (address instanceof Err) { return address }
@@ -34716,6 +34754,23 @@ _program.addRoutes([{
   handler: (() => {
     (async () => {
   try {
+     await $Application.setPage(`import-wallet`)
+  }
+  catch(_error) {
+    if (_error instanceof DoError) {
+    } else {
+      console.warn(`Unhandled error in do statement`)
+      console.log(_error)
+    }
+  } 
+})()
+  }),
+  mapping: [],
+  path: `/import-wallet`
+}, {
+  handler: (() => {
+    (async () => {
+  try {
      await $Application.setPage(`dashboard`)
   }
   catch(_error) {
@@ -34839,6 +34894,21 @@ const $Target_Network = new(class {
 })
 
 const $Common = new(class {
+  redirectToAddWallet(wallets) {
+    return (async () => {
+      try {
+         await ($Array.isEmpty(wallets) ? $Window.navigate(`/add-wallet`) : null)
+      }
+      catch(_error) {
+        if (_error instanceof DoError) {
+        } else {
+          console.warn(`Unhandled error in do statement`)
+          console.log(_error)
+        }
+      } 
+    })()
+  }
+
   getCurrentWalletName(currentWallet) {
     return $Maybe.withDefault(``, $Maybe.map(((c) => {
     return c.wallet.name
@@ -34857,6 +34927,16 @@ const $Common = new(class {
 
   walletWithNametoWallet(w) {
     return new Record({
+      source: w.source,
+      ciphertext: w.ciphertext,
+      address: w.address,
+      salt: w.salt
+    })
+  }
+
+  walletToWalletWithName(w, name) {
+    return new Record({
+      name: name,
       source: w.source,
       ciphertext: w.ciphertext,
       address: w.address,
@@ -36609,6 +36689,36 @@ const $Sushi_Wallet = new(class {
   }
 })
 
+const $ImportOrCreate = new (class extends Store {
+    constructor() {
+    super()
+    this.props = {
+        readyToImport: false
+    }
+  }
+
+  get readyToImport () {
+    if (this.props.readyToImport != undefined) {
+      return this.props.readyToImport
+    } else {
+      return false
+    }
+  }
+
+  get state () {
+    return {
+    readyToImport: this.readyToImport
+    }
+  }
+
+  setReadyToImport(v) {
+    return new Promise((_resolve) => {
+      this.setState(_update(this.state, { readyToImport: v }), _resolve)
+    })
+  }
+})
+$ImportOrCreate.__displayName = `ImportOrCreate`
+
 const $WalletStore = new (class extends Store {
     constructor() {
     super()
@@ -37286,13 +37396,13 @@ const $Application = new (class extends Store {
     }
   }
 
-  setPage(a) {
+  setPage(page) {
     return (async () => {
       try {
          await $Http.abortAll()
 
      await new Promise((_resolve) => {
-      this.setState(_update(this.state, { page: a }), _resolve)
+      this.setState(_update(this.state, { page: page }), _resolve)
     })
       }
       catch(_error) {
@@ -37860,9 +37970,204 @@ class $ChooseNetwork extends Component {
 
 $ChooseNetwork.displayName = "ChooseNetwork"
 
-class $Backup extends Component {
+class $ImportUnencryptedWallet extends Component {
+  constructor(props) {
+    super(props)
+    this.state = new Record({
+      file: $Maybe.nothing(),
+      contents: ``,
+      error: ``,
+      wallet: $Maybe.nothing()
+    })
+  }
+
+  get showError() {
+    return ($String.isEmpty(this.state.error) ? _createElement("span", {}) : _createElement("div", {
+      className: `alert alert-danger`
+    }, [this.state.error]))
+  }
+
+  get renderUploadFile() {
+    return _createElement("div", {}, [_createElement("p", {}, [`Please choose an unencrypted json wallet to import.`]), _createElement("button", {
+      "onClick": (event => (((event) => {
+      return this.openDialog.bind(this)()
+      }))(_normalizeEvent(event))),
+      className: `btn btn-info`
+    }, [`Upload an unencrypted wallet`])])
+  }
+
+  get renderCompleteImport() {
+    return _createElement("div", {}, [`File uploaded ok`])
+  }
+
+  get currentWallet () { return $WalletStore.currentWallet }
+
+  storeWallet (...params) { return $WalletStore.storeWallet(...params) }
+
+  setReadyToImport (...params) { return $ImportOrCreate.setReadyToImport(...params) }
+
+  get readyToImport () { return $ImportOrCreate.readyToImport }
+
+  componentWillUnmount () {
+    $WalletStore._unsubscribe(this);$ImportOrCreate._unsubscribe(this)
+  }
+
+  componentDidMount () {
+    $WalletStore._subscribe(this);$ImportOrCreate._subscribe(this)
+  }
+
+  openDialog() {
+    return (async () => {
+      try {
+        let file = await (async ()=> {
+      try {
+        return await $File.select(`application/json`)
+      } catch(_error) {
+        
+
+        throw new DoError
+      }
+    })()
+
+    let contents = await (async ()=> {
+      try {
+        return await $File.readAsString(file)
+      } catch(_error) {
+        
+
+        throw new DoError
+      }
+    })()
+
+     await new Promise((_resolve) => {
+      this.setState(_update(this.state, { contents: contents, file: $Maybe.just(file) }), _resolve)
+    })
+
+    let p1 = await [this.setReadyToImport.bind(this)(true)]
+
+     await Promise.all(p1)
+
+    let json = await $Json.parse(this.state.contents)
+
+     await $Debug.log(json)
+
+    let _7 = $Result.map(((o) => {
+    return $$Wallet(o)
+    }), $Maybe.toResult(`could not decode imported json wallet`, json))
+
+    if (_7 instanceof Err) {
+      let _error = _7.value
+
+      let error = _error;
+     new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: error }), _resolve)
+    })
+
+      throw new DoError
+    }
+
+    let decoded = _7.value
+
+    let _8 = decoded
+
+    if (_8 instanceof Err) {
+      let _error = _8.value
+
+      let error = _error;
+     new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: `This is not a valid unencrypted wallet file!` }), _resolve)
+    })
+
+      throw new DoError
+    }
+
+    let wallet = _8.value
+
+     await new Promise((_resolve) => {
+      this.setState(_update(this.state, { wallet: $Maybe.just(wallet), error: `` }), _resolve)
+    })
+      }
+      catch(_error) {
+        if (_error instanceof DoError) {
+        } else {
+          console.warn(`Unhandled error in do statement`)
+          console.log(_error)
+        }
+      } 
+    })()
+  }
+
   render() {
-    return _createElement("div", {}, [`BACKUP`])
+    return _createElement("div", {}, [_createElement("br", {}), _createElement("div", {
+      className: `card border-dark mb-3` + ` import-unencrypted-wallet-mx`
+    }, [_createElement("div", {
+      className: `card-header`
+    }, [`Import an unencrypted wallet`]), _createElement("div", {
+      className: `card-body`
+    }, [this.showError, (this.readyToImport && _compare(this.state.error, ``) ? _createElement($CreateEncryptedWallet, { "title": `Import unencrypted wallet`, "cancelUrl": `/import-wallet`, "importOnly": true, "importedWallet": this.state.wallet }) : this.renderUploadFile)])])])
+  }
+}
+
+$ImportUnencryptedWallet.displayName = "ImportUnencryptedWallet"
+
+class $Backup extends Component {
+  get currentWallet () { return $WalletStore.currentWallet }
+
+  componentWillUnmount () {
+    $WalletStore._unsubscribe(this)
+  }
+
+  componentDidMount () {
+    $WalletStore._subscribe(this)
+  }
+
+  downloadWallet(event) {
+    return (async () => {
+      try {
+        let _0 = $Maybe.toResult(``, this.currentWallet)
+
+    if (_0 instanceof Err) {
+      let _error = _0.value
+
+      let error = _error;
+     null
+
+      throw new DoError
+    }
+
+    let walletWithName = _0.value
+
+    let wallet = await $Common.walletWithNametoWallet(walletWithName.wallet)
+
+    let walletJson = await $Json.stringify(_encode(wallet))
+
+    let name = await ($String.join(`-`, $String.split(` `, walletWithName.wallet.name))) + `.json`
+
+     await saveAs(new Blob([walletJson], {type: "application/json;charset=utf-8"}), name);
+      }
+      catch(_error) {
+        if (_error instanceof DoError) {
+        } else {
+          console.warn(`Unhandled error in do statement`)
+          console.log(_error)
+        }
+      } 
+    })()
+  }
+
+  render() {
+    return _createElement("div", {
+      className: `card border-dark mb-3`
+    }, [_createElement("div", {
+      className: `card-header`
+    }, [$Common.getCurrentWalletName(this.currentWallet)]), _createElement("div", {
+      className: `card-body`
+    }, [_createElement("h4", {
+      className: `card-title`
+    }, [`Backup`]), _createElement("hr", {}), _createElement("h5", {}, [`Download the encrypted wallet`]), _createElement("button", {
+      "onClick": (event => (this.downloadWallet.bind(this))(_normalizeEvent(event))),
+      className: `btn btn-primary`
+    }, [`Download`])])])
   }
 }
 
@@ -38352,6 +38657,176 @@ class $Send extends Component {
 
 $Send.displayName = "Send"
 
+class $ImportEncryptedWallet extends Component {
+  constructor(props) {
+    super(props)
+    this.state = new Record({
+      file: $Maybe.nothing(),
+      contents: ``,
+      error: ``
+    })
+  }
+
+  get showError() {
+    return ($String.isEmpty(this.state.error) ? _createElement("span", {}) : _createElement("div", {
+      className: `alert alert-danger`
+    }, [this.state.error]))
+  }
+
+  get currentWallet () { return $WalletStore.currentWallet }
+
+  storeWallet (...params) { return $WalletStore.storeWallet(...params) }
+
+  componentWillUnmount () {
+    $WalletStore._unsubscribe(this)
+  }
+
+  componentDidMount () {
+    $WalletStore._subscribe(this)
+  }
+
+  openDialog() {
+    return (async () => {
+      try {
+        let file = await (async ()=> {
+      try {
+        return await $File.select(`application/json`)
+      } catch(_error) {
+        
+
+        throw new DoError
+      }
+    })()
+
+    let contents = await (async ()=> {
+      try {
+        return await $File.readAsString(file)
+      } catch(_error) {
+        
+
+        throw new DoError
+      }
+    })()
+
+     await new Promise((_resolve) => {
+      this.setState(_update(this.state, { contents: contents, file: $Maybe.just(file) }), _resolve)
+    })
+
+    let json = await $Json.parse(this.state.contents)
+
+    let _4 = $Result.map(((o) => {
+    return $$EncryptedWallet(o)
+    }), $Maybe.toResult(`could not decode imported json wallet`, json))
+
+    if (_4 instanceof Err) {
+      let _error = _4.value
+
+      let error = _error;
+     new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: error }), _resolve)
+    })
+
+      throw new DoError
+    }
+
+    let decoded = _4.value
+
+    let _5 = decoded
+
+    if (_5 instanceof Err) {
+      let _error = _5.value
+
+      let error = _error;
+     new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: `This is not a valid Kajiki encrypted wallet file!` }), _resolve)
+    })
+
+      throw new DoError
+    }
+
+    let encryptedWallet = _5.value
+
+    let _6 = $Maybe.toResult(`cannot get uploaded file name`, this.state.file)
+
+    if (_6 instanceof Err) {
+      let _error = _6.value
+
+      let error = _error;
+     new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: error }), _resolve)
+    })
+
+      throw new DoError
+    }
+
+    let fileInfo = _6.value
+
+    let fileName = await $Array.firstWithDefault(`unknown`, $String.split(`.`, $String.join(` `, $String.split(`-`, $File.name(fileInfo)))))
+
+    let walletWithName = await $Common.walletToWalletWithName(encryptedWallet, fileName)
+
+     await (_compare(walletWithName.source, `kajiki`) ? (async () => {
+      try {
+        let _0 = this.storeWallet.bind(this)(walletWithName)
+
+    if (_0 instanceof Err) {
+      let _error = _0.value
+
+      let error = _error;
+     new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: `could not store imported wallet` }), _resolve)
+    })
+
+      throw new DoError
+    }
+
+     _0.value
+
+     await new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: `` }), _resolve)
+    })
+
+     await $Window.navigate(`/dashboard`)
+      }
+      catch(_error) {
+        if (_error instanceof DoError) {
+        } else {
+          console.warn(`Unhandled error in do statement`)
+          console.log(_error)
+        }
+      } 
+    })() : new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: `This wallet is from the Sushi client and cannot be uploaded. If you want to upload this wallet you must first decrypt it with the Sushi client and then use the import unencrypted wallet option` }), _resolve)
+    }))
+      }
+      catch(_error) {
+        if (_error instanceof DoError) {
+        } else {
+          console.warn(`Unhandled error in do statement`)
+          console.log(_error)
+        }
+      } 
+    })()
+  }
+
+  render() {
+    return _createElement("div", {}, [_createElement("br", {}), _createElement("div", {
+      className: `card border-dark mb-3` + ` import-encrypted-wallet-mx`
+    }, [_createElement("div", {
+      className: `card-header`
+    }, [`Import a Kajiki encrypted wallet`]), _createElement("div", {
+      className: `card-body`
+    }, [this.showError, _createElement("p", {}, [`Please choose a Kajiki encrypted json wallet to import.`]), _createElement("button", {
+      "onClick": (event => (((event) => {
+      return this.openDialog.bind(this)()
+      }))(_normalizeEvent(event))),
+      className: `btn btn-info`
+    }, [`Upload an encrypted wallet`])])])])
+  }
+}
+
+$ImportEncryptedWallet.displayName = "ImportEncryptedWallet"
+
 class $Receive extends Component {
   get currentWallet () { return $WalletStore.currentWallet }
 
@@ -38401,68 +38876,7 @@ class $Receive extends Component {
 
 $Receive.displayName = "Receive"
 
-class $DashboardTransactions extends Component {
-  render() {
-    return _createElement("div", {
-      className: `row`
-    }, [_createElement("div", {
-      className: `col-md-3`
-    }, [_createElement("br", {}), _createElement($MyWallets, {  })]), _createElement("div", {
-      className: `col-md-9`
-    }, [_createElement("br", {}), _createElement($Tabs, { "currentTab": new Record({
-      name: `Transactions`,
-      path: `/dashboard/transactions`
-    }) }), _createElement("div", {}, [_createElement("br", {}), _createElement($Transactions, {  })])])])
-  }
-}
-
-$DashboardTransactions.displayName = "DashboardTransactions"
-
-class $DashboardReceive extends Component {
-  render() {
-    return _createElement("div", {
-      className: `row`
-    }, [_createElement("div", {
-      className: `col-md-3`
-    }, [_createElement("br", {}), _createElement($MyWallets, {  })]), _createElement("div", {
-      className: `col-md-9`
-    }, [_createElement("br", {}), _createElement($Tabs, { "currentTab": new Record({
-      name: `Receive`,
-      path: `/dashboard/receive`
-    }) }), _createElement("div", {}, [_createElement("br", {}), _createElement($Receive, {  })])])])
-  }
-}
-
-$DashboardReceive.displayName = "DashboardReceive"
-
-class $AddWallet extends Component {
-  render() {
-    return _createElement("div", {}, [_createElement("a", {
-      "href": `/create-wallet`
-    }, [`Create wallet`])])
-  }
-}
-
-$AddWallet.displayName = "AddWallet"
-
-class $DashboardSummary extends Component {
-  render() {
-    return _createElement("div", {
-      className: `row`
-    }, [_createElement("div", {
-      className: `col-md-3`
-    }, [_createElement("br", {}), _createElement($MyWallets, {  })]), _createElement("div", {
-      className: `col-md-9`
-    }, [_createElement("br", {}), _createElement($Tabs, { "currentTab": new Record({
-      name: `Summary`,
-      path: `/dashboard`
-    }) }), _createElement("div", {}, [_createElement("br", {}), _createElement($Summary, {  })])])])
-  }
-}
-
-$DashboardSummary.displayName = "DashboardSummary"
-
-class $CreateWallet extends Component {
+class $CreateEncryptedWallet extends Component {
   constructor(props) {
     super(props)
     this.state = new Record({
@@ -38480,6 +38894,38 @@ class $CreateWallet extends Component {
     })
   }
 
+  get importWallet() {
+    return (() => { let _0 = $Maybe.toResult(`Could not process imported wallet`, this.importedWallet)
+
+             if (_0 instanceof Err) {
+                let _error = _0.value
+                let error = _error
+     return new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: error }), _resolve)
+    })
+             }
+
+             let wallet = _0.value
+
+    return this.storeAsEncryptedWithName.bind(this)(wallet) })()
+  }
+
+  get createWallet() {
+    return (() => { let _0 = $Sushi_Wallet.generateNewWallet($Network_Prefix.testNet())
+
+             if (_0 instanceof Err) {
+                let _error = _0.value
+                let error = _error
+     return new Promise((_resolve) => {
+      this.setState(_update(this.state, { error: `Could not generate a new wallet` }), _resolve)
+    })
+             }
+
+             let wallet = _0.value
+
+    return this.storeAsEncryptedWithName.bind(this)(wallet) })()
+  }
+
   get showPasswordStrength() {
     return (() => { let strength = this.state.passwordStrength
 
@@ -38492,19 +38938,19 @@ class $CreateWallet extends Component {
     let rating = this.scoreText.bind(this)(strength.score)
 
     return (_compare(strength.score, -1) ? _createElement("div", {}) : _createElement("div", {
-      className: `create-wallet-height`
+      className: `create-encrypted-wallet-height`
     }, [_createElement("div", {
       className: `alert alert-` + rating.colour
     }, [_createElement("span", {}, [`Strength: `]), _createElement("strong", {}, [rating.text + ` `]), _createElement("span", {
-      className: `create-wallet-italics`
+      className: `create-encrypted-wallet-italics`
     }, [warning]), _createElement("span", {
-      className: `create-wallet-italics`
+      className: `create-encrypted-wallet-italics`
     }, [` ` + suggestions])])])) })()
   }
 
   get passwordsNotMatchingAlert() {
     return ($String.isEmpty(this.state.password) && $String.isEmpty(this.state.repeatPassword) ? _createElement("div", {}) : (_compare(this.state.password, this.state.repeatPassword) ? _createElement("div", {}) : ($String.isEmpty(this.state.repeatPassword) || $String.isEmpty(this.state.password) ? _createElement("div", {}) : _createElement("div", {
-      className: `create-wallet-height`
+      className: `create-encrypted-wallet-height`
     }, [_createElement("div", {
       className: `alert alert-danger`
     }, [`The password and repeat password you entered do not match`])]))))
@@ -38534,16 +38980,48 @@ class $CreateWallet extends Component {
     return (this.state.showRepeatPassword ? `eye-slash` : `eye`)
   }
 
-  get getWallets () { return $WalletStore.getWallets }
+  get title () {
+    if (this.props.title != undefined) {
+      return this.props.title
+    } else {
+      return `Create a wallet`
+    }
+  }
+
+  get cancelUrl () {
+    if (this.props.cancelUrl != undefined) {
+      return this.props.cancelUrl
+    } else {
+      return `/`
+    }
+  }
+
+  get importOnly () {
+    if (this.props.importOnly != undefined) {
+      return this.props.importOnly
+    } else {
+      return false
+    }
+  }
+
+  get importedWallet () {
+    if (this.props.importedWallet != undefined) {
+      return this.props.importedWallet
+    } else {
+      return $Maybe.nothing()
+    }
+  }
 
   storeWallet (...params) { return $WalletStore.storeWallet(...params) }
 
+  setReadyToImport (...params) { return $ImportOrCreate.setReadyToImport(...params) }
+
   componentWillUnmount () {
-    $WalletStore._unsubscribe(this)
+    $WalletStore._unsubscribe(this);$ImportOrCreate._unsubscribe(this)
   }
 
   componentDidMount () {
-    $WalletStore._subscribe(this)
+    $WalletStore._subscribe(this);$ImportOrCreate._subscribe(this)
   }
 
   onName(event) {
@@ -38611,36 +39089,29 @@ class $CreateWallet extends Component {
     })
   }
 
-  createWallet(event) {
-    return (() => { let _0 = $Sushi_Wallet.generateNewWallet($Network_Prefix.testNet())
+  createOrImportWallet(event) {
+    return (this.importOnly ? this.importWallet : this.createWallet)
+  }
 
-             if (_0 instanceof Err) {
-                let _error = _0.value
-                let error = _error
-     return new Promise((_resolve) => {
+  storeAsEncryptedWithName(wallet) {
+    return (async () => {
+      try {
+        let _0 = $Sushi_Wallet.encryptWallet(wallet, this.state.password)
+
+    if (_0 instanceof Err) {
+      let _error = _0.value
+
+      let error = _error;
+     new Promise((_resolve) => {
       this.setState(_update(this.state, { error: `Could not generate a new wallet` }), _resolve)
     })
 
+      throw new DoError
+    }
 
-             }
+    let encrypted = _0.value
 
-             let wallet = _0.value
-
-    let _1 = $Sushi_Wallet.encryptWallet(wallet, this.state.password)
-
-             if (_1 instanceof Err) {
-                let _error = _1.value
-                let error = _error
-     return new Promise((_resolve) => {
-      this.setState(_update(this.state, { error: `Could not generate a new wallet` }), _resolve)
-    })
-
-
-             }
-
-             let encrypted = _1.value
-
-    let encryptedWithName = new Record({
+    let encryptedWithName = await new Record({
       name: this.state.name,
       source: encrypted.source,
       ciphertext: encrypted.ciphertext,
@@ -38648,21 +39119,31 @@ class $CreateWallet extends Component {
       salt: encrypted.salt
     })
 
-    let _3 = this.storeWallet.bind(this)(encryptedWithName)
+    let _2 = this.storeWallet.bind(this)(encryptedWithName)
 
-             if (_3 instanceof Err) {
-                let _error = _3.value
-                
+    if (_2 instanceof Err) {
+      let _error = _2.value
 
-    let error = _error
-     return new Promise((_resolve) => {
+      let error = _error;
+     new Promise((_resolve) => {
       this.setState(_update(this.state, { error: `Could not store the new wallet` }), _resolve)
     })
-             }
 
-             let created = _3.value
+      throw new DoError
+    }
 
-    return $Window.navigate(`/dashboard`) })()
+    let created = _2.value
+
+     await $Window.navigate(`/dashboard`)
+      }
+      catch(_error) {
+        if (_error instanceof DoError) {
+        } else {
+          console.warn(`Unhandled error in do statement`)
+          console.log(_error)
+        }
+      } 
+    })()
   }
 
   scoreText(score) {
@@ -38714,8 +39195,25 @@ class $CreateWallet extends Component {
     })])])
   }
 
+  cancel(event) {
+    return (async () => {
+      try {
+         await this.setReadyToImport.bind(this)(false)
+
+     await $Window.navigate(this.cancelUrl)
+      }
+      catch(_error) {
+        if (_error instanceof DoError) {
+        } else {
+          console.warn(`Unhandled error in do statement`)
+          console.log(_error)
+        }
+      } 
+    })()
+  }
+
   render() {
-    return _createElement("div", {}, [_createElement("fieldset", {}, [_createElement("legend", {}, [`Create a wallet`]), _createElement("div", {
+    return _createElement("div", {}, [_createElement("fieldset", {}, [_createElement("legend", {}, [this.title]), _createElement("div", {
       className: `form-group`
     }, [_createElement("label", {
       "for": `exampleInputEmail1`
@@ -38724,6 +39222,7 @@ class $CreateWallet extends Component {
       "type": `text`,
       "id": `walletName`,
       "aria-describedby": `walletName`,
+      "maxLength": `100`,
       "placeholder": `Enter a name for this wallet`,
       className: `form-control`
     })]), _createElement("div", {
@@ -38737,6 +39236,7 @@ class $CreateWallet extends Component {
       "type": this.passwordType,
       "id": `password`,
       "placeholder": `Password`,
+      "maxLength": `100`,
       "aria-describedby": `basic-addon2`,
       className: `form-control`
     }), _createElement("div", {
@@ -38745,7 +39245,7 @@ class $CreateWallet extends Component {
       "id": `basic-addon2`,
       className: `input-group-text`
     }, [_createElement("span", {
-      className: `create-wallet-pointer`
+      className: `create-encrypted-wallet-pointer`
     }, [_createElement("i", {
       "onClick": (event => (this.togglePasswordVisibility.bind(this))(_normalizeEvent(event))),
       className: `fas fa-` + this.passwordEye
@@ -38760,6 +39260,7 @@ class $CreateWallet extends Component {
       "type": this.repeatPasswordType,
       "id": `repeatPassword`,
       "placeholder": `Repeat password`,
+      "maxLength": `100`,
       "aria-describedby": `basic-addon2`,
       className: `form-control`
     }), _createElement("div", {
@@ -38768,27 +39269,172 @@ class $CreateWallet extends Component {
       "id": `basic-addon2`,
       className: `input-group-text`
     }, [_createElement("span", {
-      className: `create-wallet-pointer`
+      className: `create-encrypted-wallet-pointer`
     }, [_createElement("i", {
       "onClick": (event => (this.toggleRepeatPasswordVisibility.bind(this))(_normalizeEvent(event))),
       className: `fas fa-` + this.repeatPasswordEye
-    })])])])]), this.passwordsNotMatchingAlert]), _createElement("a", {
-      "href": `/`,
+    })])])])]), this.passwordsNotMatchingAlert]), _createElement("button", {
+      "onClick": (event => (this.cancel.bind(this))(_normalizeEvent(event))),
       className: `btn btn-outline-primary`
     }, [`Cancel`]), _createElement("span", {
-      className: `create-wallet-spacer`
+      className: `create-encrypted-wallet-spacer`
     }), _createElement("button", {
       "type": `submit`,
-      "onClick": (event => (this.createWallet.bind(this))(_normalizeEvent(event))),
+      "onClick": (event => (this.createOrImportWallet.bind(this))(_normalizeEvent(event))),
       "disabled": this.createButtonState,
       className: `btn btn-primary`
     }, [`Create`])])])
   }
 }
 
+$CreateEncryptedWallet.displayName = "CreateEncryptedWallet"
+
+$CreateEncryptedWallet.defaultProps = {
+  title: `Create a wallet`,cancelUrl: `/`,importOnly: false,importedWallet: $Maybe.nothing()
+}
+
+class $ImportWallet extends Component {
+  render() {
+    return _createElement("div", {}, [_createElement("br", {}), _createElement("div", {
+      className: `card text-black bg-white mb-3` + ` import-wallet-mx`
+    }, [_createElement("div", {
+      className: `card-header`
+    }, [`Import a wallet`]), _createElement("div", {
+      className: `card-body`
+    }, [_createElement($ImportEncryptedWallet, {  }), _createElement($ImportUnencryptedWallet, {  })])])])
+  }
+}
+
+$ImportWallet.displayName = "ImportWallet"
+
+class $DashboardTransactions extends Component {
+  get wallets () { return $WalletStore.wallets }
+
+  componentWillUnmount () {
+    $WalletStore._unsubscribe(this)
+  }
+
+  componentDidMount() {
+    $WalletStore._subscribe(this)
+
+    return $Common.redirectToAddWallet(this.wallets)
+  }
+
+  render() {
+    return _createElement("div", {
+      className: `row`
+    }, [_createElement("div", {
+      className: `col-md-3`
+    }, [_createElement("br", {}), _createElement($MyWallets, {  })]), _createElement("div", {
+      className: `col-md-9`
+    }, [_createElement("br", {}), _createElement($Tabs, { "currentTab": new Record({
+      name: `Transactions`,
+      path: `/dashboard/transactions`
+    }) }), _createElement("div", {}, [_createElement("br", {}), _createElement($Transactions, {  })])])])
+  }
+}
+
+$DashboardTransactions.displayName = "DashboardTransactions"
+
+class $DashboardReceive extends Component {
+  get wallets () { return $WalletStore.wallets }
+
+  componentWillUnmount () {
+    $WalletStore._unsubscribe(this)
+  }
+
+  componentDidMount() {
+    $WalletStore._subscribe(this)
+
+    return $Common.redirectToAddWallet(this.wallets)
+  }
+
+  render() {
+    return _createElement("div", {
+      className: `row`
+    }, [_createElement("div", {
+      className: `col-md-3`
+    }, [_createElement("br", {}), _createElement($MyWallets, {  })]), _createElement("div", {
+      className: `col-md-9`
+    }, [_createElement("br", {}), _createElement($Tabs, { "currentTab": new Record({
+      name: `Receive`,
+      path: `/dashboard/receive`
+    }) }), _createElement("div", {}, [_createElement("br", {}), _createElement($Receive, {  })])])])
+  }
+}
+
+$DashboardReceive.displayName = "DashboardReceive"
+
+class $AddWallet extends Component {
+  render() {
+    return _createElement("div", {}, [_createElement("br", {}), _createElement("div", {
+      className: `card border-primary mb-3` + ` add-wallet-mx`
+    }, [_createElement("div", {
+      className: `card-header`
+    }, [`Create or Import a wallet`]), _createElement("div", {
+      className: `card-body`
+    }, [_createElement("a", {
+      "href": `/create-wallet`,
+      className: `btn btn-primary`
+    }, [`Create wallet`]), _createElement("span", {}, [` or `]), _createElement("a", {
+      "href": `/import-wallet`,
+      className: `btn btn-info`
+    }, [`Import wallet`])])])])
+  }
+}
+
+$AddWallet.displayName = "AddWallet"
+
+class $DashboardSummary extends Component {
+  get wallets () { return $WalletStore.wallets }
+
+  componentWillUnmount () {
+    $WalletStore._unsubscribe(this)
+  }
+
+  componentDidMount() {
+    $WalletStore._subscribe(this)
+
+    return $Common.redirectToAddWallet(this.wallets)
+  }
+
+  render() {
+    return _createElement("div", {
+      className: `row`
+    }, [_createElement("div", {
+      className: `col-md-3`
+    }, [_createElement("br", {}), _createElement($MyWallets, {  })]), _createElement("div", {
+      className: `col-md-9`
+    }, [_createElement("br", {}), _createElement($Tabs, { "currentTab": new Record({
+      name: `Summary`,
+      path: `/dashboard`
+    }) }), _createElement("div", {}, [_createElement("br", {}), _createElement($Summary, {  })])])])
+  }
+}
+
+$DashboardSummary.displayName = "DashboardSummary"
+
+class $CreateWallet extends Component {
+  render() {
+    return _createElement($CreateEncryptedWallet, {  })
+  }
+}
+
 $CreateWallet.displayName = "CreateWallet"
 
 class $DashboardBackup extends Component {
+  get wallets () { return $WalletStore.wallets }
+
+  componentWillUnmount () {
+    $WalletStore._unsubscribe(this)
+  }
+
+  componentDidMount() {
+    $WalletStore._subscribe(this)
+
+    return $Common.redirectToAddWallet(this.wallets)
+  }
+
   render() {
     return _createElement("div", {
       className: `row`
@@ -38806,6 +39452,18 @@ class $DashboardBackup extends Component {
 $DashboardBackup.displayName = "DashboardBackup"
 
 class $DashboardSend extends Component {
+  get wallets () { return $WalletStore.wallets }
+
+  componentWillUnmount () {
+    $WalletStore._unsubscribe(this)
+  }
+
+  componentDidMount() {
+    $WalletStore._subscribe(this)
+
+    return $Common.redirectToAddWallet(this.wallets)
+  }
+
   render() {
     return _createElement("div", {
       className: `row`
@@ -38830,6 +39488,9 @@ class $Main extends Component {
     }), new Record({
       name: `create-wallet`,
       contents: _createElement($CreateWallet, {  })
+    }), new Record({
+      name: `import-wallet`,
+      contents: _createElement($ImportWallet, {  })
     }), new Record({
       name: `dashboard`,
       contents: _createElement($DashboardSummary, {  })
@@ -41327,20 +41988,36 @@ $Ui_Form_Field.defaultProps = {
 }
 
 _insertStyles(`
-  .create-wallet-spacer {
+  .import-unencrypted-wallet-mx {
+    max-width: 20rem;
+  }
+
+  .import-encrypted-wallet-mx {
+    max-width: 20rem;
+  }
+
+  .create-encrypted-wallet-spacer {
     padding-left: 10px;
   }
 
-  .create-wallet-height {
+  .create-encrypted-wallet-height {
     margin-top: 5px;
   }
 
-  .create-wallet-italics {
+  .create-encrypted-wallet-italics {
     font-style: italic;
   }
 
-  .create-wallet-pointer {
+  .create-encrypted-wallet-pointer {
     cursor: pointer;
+  }
+
+  .import-wallet-mx {
+    max-width: 20rem;
+  }
+
+  .add-wallet-mx {
+    max-width: 20rem;
   }
 
   .ui-loader-base {
