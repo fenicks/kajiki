@@ -16,6 +16,15 @@ component Send {
     next { state | amount = Dom.getValue(event.target) }
   }
 
+  fun validateAmount(value : String) : String {
+    try {
+      wallet = currentWallet |> Maybe.toResult("can't get current wallet")
+      ""
+    } catch String => error {
+      ""
+    }
+  }
+
   fun onFee (event : Html.Event) : Void {
     next { state | fee = Dom.getValue(event.target) }
   }
@@ -182,6 +191,10 @@ component Send {
     n = Number.fromString(value) |> Maybe.withDefault(0)
   }
 
+  get createButtonState : Bool {
+    (String.isEmpty(state.amount) || String.isEmpty(state.password))
+  }
+
   get renderSendForm : Html {
     <fieldset>
       <div class="form-group">
@@ -255,9 +268,8 @@ component Send {
       <button
         type="submit"
         class="btn btn-primary"
-        onClick={showConfirmation}>
-        /* disabled={createButtonState} */
-
+        onClick={showConfirmation}
+        disabled={createButtonState}>
 
         <{ "Send" }>
 
