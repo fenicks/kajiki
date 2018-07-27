@@ -9,6 +9,10 @@ component ImportUnencryptedWallet {
   connect WalletStore exposing { currentWallet, storeWallet }
   connect ImportOrCreate exposing { setReadyToImport, readyToImport }
 
+  fun componentDidMount() : Void {
+    setReadyToImport(false)
+  }
+  
   state : ImportUnencrypted.State {
     file = Maybe.nothing(),
     contents = "",

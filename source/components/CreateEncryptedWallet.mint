@@ -166,6 +166,7 @@ component CreateEncryptedWallet {
       created =
         storeWallet(encryptedWithName)
 
+      setReadyToImport(false)
       Window.navigate("/dashboard")
     } catch Wallet.Error => error {
       setError("Could not generate a new wallet")

@@ -6,7 +6,7 @@ component Error {
      <span/>
     } else {
     <div class="alert alert-dismissible alert-danger">
-     <button type="button" class="close" data-dismiss="alert"><{"close"}></button>
+     <button onClick={\e : Html.Event => clearError()} type="button" class="close" data-dismiss="alert"><{"x"}></button>
      <p><{getError()}></p>
    </div>
    }
