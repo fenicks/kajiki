@@ -12,7 +12,7 @@ component ImportUnencryptedWallet {
   fun componentDidMount() : Void {
     setReadyToImport(false)
   }
-  
+
   state : ImportUnencrypted.State {
     file = Maybe.nothing(),
     contents = "",

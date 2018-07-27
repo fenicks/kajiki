@@ -56,12 +56,12 @@ component Summary {
   } where {
     tokenBalances =
       balances
-      |> Array.reject(\i : TokenPair => i.token == "SUSHI")
+      |> Array.reject(\i : TokenPair => (i.token == "SUSHI" || i.amount == "0"))
   }
 
   fun renderBalances (pairs : Array(TokenPair)) : Array(Html) {
     pairs
-    |> Array.reject(\i : TokenPair => i.token == "SUSHI")
+    |> Array.reject(\i : TokenPair => (i.token == "SUSHI" || i.amount == "0"))
     |> Array.map(renderBalance)
   }
 
@@ -72,7 +72,7 @@ component Summary {
       </th>
 
       <td>
-        <{ toBalance(pair.amount) }>
+        <{ pair.amount }>
       </td>
     </tr>
   }
