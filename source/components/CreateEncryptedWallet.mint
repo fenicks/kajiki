@@ -3,7 +3,6 @@ record CreateEncryptedWallet.State {
   password : String,
   repeatPassword : String,
   passwordStrength : PasswordStrength,
-  error : String,
   showPassword : Bool,
   showRepeatPassword : Bool
 }
@@ -32,7 +31,7 @@ record EncryptedWalletWithName {
 }
 
 component CreateEncryptedWallet {
-  connect WalletStore exposing { storeWallet }
+  connect WalletStore exposing { storeWallet, setError, getError }
   connect ImportOrCreate exposing { setReadyToImport }
 
   property title : String = "Create a wallet"
@@ -50,7 +49,6 @@ component CreateEncryptedWallet {
         warning = "",
         suggestions = []
       },
-    error = "",
     showPassword = false,
     showRepeatPassword = false
   }
@@ -115,16 +113,19 @@ component CreateEncryptedWallet {
           }
       }
     } catch PasswordStrength.Error => error {
-      next
-        { state |
-          error = "Password strength checking error",
-          passwordStrength =
-            {
-              score = -1,
-              warning = "",
-              suggestions = []
-            }
-        }
+      do {
+        next
+          { state |
+            passwordStrength =
+              {
+                score = -1,
+                warning = "",
+                suggestions = []
+              }
+          }
+
+        setError("Password strength checking error")
+      }
     }
   }
 
@@ -167,9 +168,7 @@ component CreateEncryptedWallet {
 
       Window.navigate("/dashboard")
     } catch Wallet.Error => error {
-      next { state | error = "Could not generate a new wallet" }
-    } catch Storage.Error => error {
-      next { state | error = "Could not store the new wallet" }
+      setError("Could not generate a new wallet")
     }
   }
 
@@ -181,7 +180,7 @@ component CreateEncryptedWallet {
 
       storeAsEncryptedWithName(wallet)
     } catch String => error {
-      next { state | error = error }
+      setError(error)
     }
   }
 
@@ -192,7 +191,7 @@ component CreateEncryptedWallet {
 
       storeAsEncryptedWithName(wallet)
     } catch Wallet.Error => error {
-      next { state | error = "Could not generate a new wallet" }
+      setError("Could not generate a new wallet")
     }
   }
 

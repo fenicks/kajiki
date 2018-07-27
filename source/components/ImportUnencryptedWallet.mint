@@ -16,10 +16,6 @@ component ImportUnencryptedWallet {
     wallet = Maybe.nothing()
   }
 
-  style mx {
-    max-width: 20rem;
-  }
-
   fun openDialog : Void {
     do {
       file =
@@ -52,11 +48,17 @@ component ImportUnencryptedWallet {
       wallet =
         decoded
 
-      next { state | wallet = Maybe.just(wallet), error="" }
+      next { state | wallet = Maybe.just(wallet), error= "" }
     } catch String => error {
-      next { state | error = error }
+      do {
+        next { state | error = error }
+        setReadyToImport(false)
+      }
     } catch Object.Error => error {
+      do {
       next { state | error = "This is not a valid unencrypted wallet file!" }
+      setReadyToImport(false)
+      }
     }
   }
 
@@ -96,7 +98,7 @@ component ImportUnencryptedWallet {
     <div>
       <br/>
 
-      <div::mx class="card border-dark mb-3">
+      <div class="card border-dark mb-9">
         <div class="card-header">
           <{ "Import an unencrypted wallet" }>
         </div>

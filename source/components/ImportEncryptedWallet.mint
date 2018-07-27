@@ -13,10 +13,6 @@ component ImportEncryptedWallet {
     error = ""
   }
 
-  style mx {
-    max-width: 20rem;
-  }
-
   fun openDialog : Void {
     do {
       file =
@@ -61,8 +57,6 @@ component ImportEncryptedWallet {
           storeWallet(walletWithName)
           next { state | error = "" }
           Window.navigate("/dashboard")
-        } catch Storage.Error => error {
-          next { state | error = "could not store imported wallet" }
         }
       } else {
         next
@@ -95,7 +89,7 @@ component ImportEncryptedWallet {
     <div>
       <br/>
 
-      <div::mx class="card border-dark mb-3">
+      <div class="card border-dark mb-9">
         <div class="card-header">
           <{ "Import a Kajiki encrypted wallet" }>
         </div>

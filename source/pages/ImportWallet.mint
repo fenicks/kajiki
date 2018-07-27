@@ -7,9 +7,10 @@ component ImportWallet {
   fun render : Html {
     <div>
      <br/>
-    <div::mx class="card text-black bg-white mb-3">
+    <div class="card text-black bg-white mb-9">
       <div class="card-header"><{"Import a wallet"}></div>
       <div class="card-body">
+      <Error/>
       <ImportEncryptedWallet/>
       <ImportUnencryptedWallet/>
       </div>

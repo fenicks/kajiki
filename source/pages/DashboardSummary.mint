@@ -16,6 +16,8 @@ component DashboardSummary {
       <div class="col-md-9">
         <br/>
 
+        <Error/>
+        
         <Tabs
           currentTab={
             {

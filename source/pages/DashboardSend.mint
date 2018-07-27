@@ -5,7 +5,7 @@ component DashboardSend {
   fun componentDidMount : Void {
     Common.redirectToAddWallet(wallets)
   }
-  
+
   fun render : Html {
     <div class="row">
       <div class="col-md-3">
@@ -16,6 +16,8 @@ component DashboardSend {
       <div class="col-md-9">
         <br/>
 
+        <Error/>
+        
         <Tabs
           currentTab={
             {
