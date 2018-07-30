@@ -22,6 +22,23 @@ module Common {
     |> Maybe.withDefault("")
   }
 
+  fun getCurrentWalletSushiBalance(currentWallet : Maybe(CurrentWallet)) : Number {
+    try {
+    balances = currentWallet
+    |> Maybe.map(\c : CurrentWallet => c.balances)
+    |> Maybe.toResult("Could not get balances from current wallet")
+
+    balance = balances
+    |> Array.select(\t : TokenPair => t.token == "SUSHI")
+    |> Array.map(\t : TokenPair => t.amount)
+    |> Array.firstWithDefault("0")
+
+    Number.fromString(balance) |> Maybe.withDefault(0)
+    } catch String => error {
+      0
+    }
+  }
+
   fun compactJson (value : String) : String {
     `JSON.stringify(JSON.parse(value), null, 0);`
   }

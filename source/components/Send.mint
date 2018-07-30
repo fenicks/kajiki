@@ -4,24 +4,34 @@ record Send.State {
   address : String,
   password : String,
   showingConfirmation : Bool,
-  error : String
+  error : String,
+  amountError : String
 }
 
 component Send {
   connect WalletStore exposing { currentWallet, currentTransactions, getTransaction, transaction1, error }
 
-  state : Send.State { amount = "", fee = "0.0001", address="", password="", showingConfirmation=false, error=""}
+  state : Send.State { amount = "", fee = "0.0001", address="", password="", showingConfirmation=false, error="", amountError=""}
 
   fun onAmount (event : Html.Event) : Void {
-    next { state | amount = Dom.getValue(event.target) }
+    next { state | amount = value, amountError = validateAmount(value) }
+  } where {
+    value = Dom.getValue(event.target)
   }
 
   fun validateAmount(value : String) : String {
     try {
-      wallet = currentWallet |> Maybe.toResult("can't get current wallet")
-      ""
-    } catch String => error {
-      ""
+      amount = Number.fromString(value) |> Maybe.withDefault(0)
+      sushi = Common.getCurrentWalletSushiBalance(currentWallet)
+      if(sushi <= (amount + 0.0001)){
+        "You don't have enough SUSHI to send"
+      } else {
+        if(amount <= 0){
+          "you must supply an amount greater than 0"
+        } else {
+          ""
+        }
+      }
     }
   }
 
@@ -210,6 +220,7 @@ component Send {
           id="amount"
           aria-describedby="amount"
           placeholder="Enter an amount"/>
+      <LocalError error={state.amountError}/>
       </div>
 
       <div class="form-group">
