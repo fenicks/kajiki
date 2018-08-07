@@ -14,22 +14,11 @@ component MyWallets {
 
   fun componentDidMount : Void {
     do {
-      p1 =
-        [
-          getWallets,
-          getWalletItems,
-          getConfig
-        ]
-
-      `Promise.all(p1)`
-
-      p2 =
-        [
-          getCurrentWallet,
-          getCurrentTransactions
-        ]
-
-      `Promise.all(p2)`
+       getWallets
+       getWalletItems
+       getConfig
+       getCurrentWallet
+       getCurrentTransactions
     }
   }
 
