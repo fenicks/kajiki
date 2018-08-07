@@ -1,23 +1,14 @@
-record ImportUnencrypted.State {
-  file : Maybe(File),
-  contents : String,
-  error : String,
-  wallet : Maybe(Wallet)
-}
-
 component ImportUnencryptedWallet {
   connect WalletStore exposing { currentWallet, storeWallet }
   connect ImportOrCreate exposing { setReadyToImport, readyToImport }
 
+  state file : Maybe(File) = Maybe.nothing()
+  state contents : String = ""
+  state error : String = ""
+  state wallet : Maybe(Wallet) = Maybe.nothing()
+
   fun componentDidMount() : Void {
     setReadyToImport(false)
-  }
-
-  state : ImportUnencrypted.State {
-    file = Maybe.nothing(),
-    contents = "",
-    error = "",
-    wallet = Maybe.nothing()
   }
 
   fun openDialog : Void {
@@ -29,8 +20,7 @@ component ImportUnencryptedWallet {
         File.readAsString(file)
 
       next
-        { state |
-          contents = contents,
+        { contents = contents,
           file = Maybe.just(file)
         }
 
@@ -40,38 +30,38 @@ component ImportUnencryptedWallet {
       `Promise.all(p1)`
 
       json =
-        Json.parse(state.contents)
+        Json.parse(contents)
 
        Debug.log(json)
 
       decoded =
         json
         |> Maybe.toResult("could not decode imported json wallet")
-        |> Result.map(\o : Object => decode o as Wallet)
+        |> Result.map((o : Object) : Result(Object.Error, Wallet) => { decode o as Wallet })
 
       wallet =
         decoded
 
-      next { state | wallet = Maybe.just(wallet), error= "" }
+      next { wallet = Maybe.just(wallet), error= "" }
     } catch String => error {
       do {
-        next { state | error = error }
+        next { error = error }
         setReadyToImport(false)
       }
     } catch Object.Error => error {
       do {
-      next { state | error = "This is not a valid unencrypted wallet file!" }
+      next { error = "This is not a valid unencrypted wallet file!" }
       setReadyToImport(false)
       }
     }
   }
 
   get showError : Html {
-    if (String.isEmpty(state.error)) {
+    if (String.isEmpty(error)) {
       <span/>
     } else {
       <div class="alert alert-danger">
-        <{ state.error }>
+        <{ error }>
       </div>
     }
   }
@@ -84,7 +74,7 @@ component ImportUnencryptedWallet {
 
       <button
         class="btn btn-info"
-        onClick={\event : Html.Event => openDialog()}>
+        onClick={(event : Html.Event) : Void => { openDialog() }}>
 
         <{ "Upload an unencrypted wallet" }>
 
@@ -111,12 +101,12 @@ component ImportUnencryptedWallet {
           <{ showError }>
 
           <{
-            if (readyToImport && state.error == "") {
+            if (readyToImport && error == "") {
               <CreateEncryptedWallet
                 title="Import unencrypted wallet"
                 cancelUrl="/import-wallet"
                 importOnly={true}
-                importedWallet={state.wallet}/>
+                importedWallet={wallet}/>
             } else {
               renderUploadFile
             }

@@ -36,11 +36,11 @@ record TransactionResponse {
 
 record Kajiki.Sender {
   address : String,
-  publicKey : String from "public_key",
+  publicKey : String using "public_key",
   amount : Number,
   fee : Number,
-  signr : String from "sign_r",
-  signs : String from "sign_s"
+  signr : String using "sign_r",
+  signs : String using "sign_s"
 }
 
 record Kajiki.Recipient {
@@ -55,7 +55,7 @@ record Kajiki.Transaction {
   recipients : Array(Kajiki.Recipient),
   message : String,
   token : String,
-  prevHash : String from "prev_hash",
+  prevHash : String,
   timestamp : Number,
   scaled : Number
 }
@@ -86,25 +86,25 @@ record Config {
 }
 
 store WalletStore {
-  property wallets : Array(EncryptedWalletWithName) = []
-  property walletItems : Array(WalletItem) = []
-  property error : String = ""
-  property currentWalletAddress : Maybe(String) = Maybe.nothing()
-  property currentWallet : Maybe(CurrentWallet) = Maybe.nothing()
-  property currentTransactions : Array(Kajiki.Transaction) = []
-  property config : Config = { network = Target.Network.testNet() }
-  property transaction1 : Maybe(Kajiki.Transaction) = Maybe.nothing()
+  state wallets : Array(EncryptedWalletWithName) = []
+  state walletItems : Array(WalletItem) = []
+  state error : String = ""
+  state currentWalletAddress : Maybe(String) = Maybe.nothing()
+  state currentWallet : Maybe(CurrentWallet) = Maybe.nothing()
+  state currentTransactions : Array(Kajiki.Transaction) = []
+  state config : Config = { network = Target.Network.testNet() }
+  state transaction1 : Maybe(Kajiki.Transaction) = Maybe.nothing()
 
   fun setError (value : String) : Void {
-    next { state | error = value }
+    next { error = value }
   }
 
   fun clearError() : Void {
-    next { state | error = ""}
+    next { error = ""}
   }
 
   fun getError() : String {
-    state.error
+    error
   }
 
   fun setNetwork (network : TargetNetwork) : Void {
@@ -114,22 +114,22 @@ store WalletStore {
 
       updateConfig(updatedConfig)
     } catch Storage.Error => error {
-      next { state | error = "could not set config: network type" }
+      next { error = "could not set config: network type" }
     }
   }
 
   get getNetwork : TargetNetwork {
     try {
-      state.config.network
+      config.network
     }
   }
 
   fun setCurrentAddress (address : String) : Void {
-    next { state | currentWalletAddress = Maybe.just(address) }
+    next { currentWalletAddress = Maybe.just(address) }
   }
 
   get getCurrentAddress : Maybe(String) {
-    state.currentWalletAddress
+    currentWalletAddress
   }
 
   get emptyEncryptedWalletWithName : EncryptedWalletWithName {
@@ -307,13 +307,13 @@ store WalletStore {
       txn =
         item.result
 
-      next { state | transaction1 = Maybe.just(txn) }
+      next {transaction1 = Maybe.just(txn) }
     } catch Http.ErrorResponse => error {
-      next { state | error = "Could not retrieve remote wallet information" }
+      next { error = "Could not retrieve remote wallet information" }
     } catch String => error {
-      next { state | error = "Could not parse json response" }
+      next { error = "Could not parse json response" }
     } catch Object.Error => error {
-      next { state | error = "could not decode json" }
+      next { error = "could not decode json" }
     }
   }
 
@@ -344,16 +344,21 @@ store WalletStore {
         Json.parse(response.body)
         |> Maybe.toResult("Json paring error")
 
+
+       Debug.log(json)
+
       item =
         decode json as AddressTransactionsResponse
 
-      next { state | currentTransactions = item.result }
+
+
+      next { currentTransactions = item.result }
     } catch Http.ErrorResponse => error {
-      next { state | error = "Could not retrieve wallet transactions" }
+      next { error = "Could not retrieve wallet transactions" }
     } catch String => error {
-      next { state | error = "Could not parse json response" }
+      next { error = "Could not parse json response" }
     } catch Object.Error => error {
-      next { state | error = "could not decode json" }
+      next { error = "could not decode json" }
     }
   }
 
@@ -377,7 +382,7 @@ store WalletStore {
       wallet =
         wallets
         |> Array.find(
-          \w : EncryptedWalletWithName => w.address == currentWalletAddressOrFirst)
+          (w : EncryptedWalletWithName) : Bool => { w.address == currentWalletAddressOrFirst})
         |> Maybe.withDefault(emptyEncryptedWalletWithName)
 
       cw =
@@ -386,13 +391,13 @@ store WalletStore {
           balances = balances
         }
 
-      next { state | currentWallet = Maybe.just(cw) }
+      next {currentWallet = Maybe.just(cw) }
     } catch Http.ErrorResponse => error {
-      next { state | error = "Could not retrieve remote wallet information" }
+      next {error = "Could not retrieve remote wallet information" }
     } catch String => error {
-      next { state | error = "Could not parse json response" }
+      next {error = "Could not parse json response" }
     } catch Object.Error => error {
-      next { state | error = "could not decode json" }
+      next { error = "could not decode json" }
     }
   }
 
@@ -425,13 +430,13 @@ store WalletStore {
           address = w.address
         }
 
-      next { state | walletItems = replaceItem(walletInfo) }
+      next { walletItems = replaceItem(walletInfo) }
     } catch Http.ErrorResponse => error {
-      next { state | error = "Could not retrieve remote wallet information" }
+      next { error = "Could not retrieve remote wallet information" }
     } catch String => error {
-      next { state | error = "Could not parse json response" }
+      next { error = "Could not parse json response" }
     } catch Object.Error => error {
-      next { state | error = "could not decode json" }
+      next { error = "could not decode json" }
     }
   }
 
@@ -439,20 +444,20 @@ store WalletStore {
     try {
       exists =
         Array.find(
-          \i : WalletItem => i.address == w.address,
-          state.walletItems)
+          (i : WalletItem) : Bool => {i.address == w.address},
+        walletItems)
 
       if (Maybe.isJust(exists)) {
         Array.map(
-          \i : WalletItem =>
+          (i : WalletItem) : WalletItem => {
             if (i.address == w.address) {
               w
             } else {
               i
-            },
-          state.walletItems)
+            }},
+          walletItems)
       } else {
-        Array.push(w, state.walletItems)
+        Array.push(w, walletItems)
       }
     }
   }
@@ -470,28 +475,28 @@ store WalletStore {
     try {
       getWallets
 
-      if (Array.isEmpty(state.wallets)) {
+      if (Array.isEmpty(wallets)) {
         do {
           storeFirstWallet(encWallet)
-          next { state | error = "" }
+          next { error = "" }
         } catch Storage.Error => error {
-          next { state | error = "" }
+          next { error = "" }
         }
       } else {
         try {
           alreadyExists =
-            state.wallets
-            |> Array.map(\w : EncryptedWalletWithName => w.address)
+            wallets
+            |> Array.map((w : EncryptedWalletWithName) : String => { w.address })
             |> Array.contains(encWallet.address)
 
           if (alreadyExists) {
-            next { state | error = "A wallet with address: " + encWallet.address + " already exists - so not storing this again." }
+            next { error = "A wallet with address: " + encWallet.address + " already exists - so not storing this again." }
           } else {
             do {
               appendWallet(encWallet)
-              next { state | error = "" }
+              next { error = "" }
             } catch Storage.Error => error {
-              next { state | error = "" }
+              next { error = "" }
             }
           }
         }
@@ -523,11 +528,11 @@ store WalletStore {
   fun appendWallet (encWallet : EncryptedWalletWithName) : Result(Storage.Error, Void) {
     try {
       updated =
-        Array.push(encWallet, state.wallets)
+        Array.push(encWallet, wallets)
 
       encoded =
         updated
-        |> Array.map(\ew : EncryptedWalletWithName => encode ew)
+        |> Array.map((ew : EncryptedWalletWithName) : Object => { encode ew })
 
       encodedArray =
         Object.Encode.array(encoded)
@@ -548,10 +553,10 @@ store WalletStore {
         Json.parse(raw)
         |> Maybe.toResult("Json Parsing Error")
 
-      wallets =
+      theWallets =
         decode object as Array(EncryptedWalletWithName)
 
-      next { state | wallets = wallets }
+      next { wallets = theWallets }
     } catch Object.Error => error {
       void
     } catch String => error {
@@ -585,7 +590,7 @@ store WalletStore {
       config =
         decode object as Config
 
-      next { state | config = config }
+      next { config = config }
     } catch Object.Error => error {
       void
     } catch String => error {

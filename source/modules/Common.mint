@@ -12,25 +12,25 @@ module Common {
 
   fun getCurrentWalletName (currentWallet : Maybe(CurrentWallet)) : String {
     currentWallet
-    |> Maybe.map(\c : CurrentWallet => c.wallet.name)
+    |> Maybe.map((c : CurrentWallet) : String  => {c.wallet.name})
     |> Maybe.withDefault("")
   }
 
   fun getCurrentWalletAddress (currentWallet : Maybe(CurrentWallet)) : String {
     currentWallet
-    |> Maybe.map(\c : CurrentWallet => c.wallet.address)
+    |> Maybe.map((c : CurrentWallet) : String => {c.wallet.address})
     |> Maybe.withDefault("")
   }
 
   fun getCurrentWalletSushiBalance(currentWallet : Maybe(CurrentWallet)) : Number {
     try {
     balances = currentWallet
-    |> Maybe.map(\c : CurrentWallet => c.balances)
+    |> Maybe.map((c : CurrentWallet) : Array(TokenPair) => {c.balances})
     |> Maybe.toResult("Could not get balances from current wallet")
 
     balance = balances
-    |> Array.select(\t : TokenPair => t.token == "SUSHI")
-    |> Array.map(\t : TokenPair => t.amount)
+    |> Array.select((t : TokenPair) : Bool => { t.token == "SUSHI"})
+    |> Array.map((t : TokenPair) : String => { t.amount })
     |> Array.firstWithDefault("0")
 
     Number.fromString(balance) |> Maybe.withDefault(0)

@@ -21,6 +21,6 @@ component Error {
   }
 
   get dismissButton : Html {
-    <button onClick={\e : Html.Event => clearError()} type="button" class="close" data-dismiss="alert"><{"x"}></button>
+    <button onClick={(e : Html.Event) : Void => { clearError() }} type="button" class="close" data-dismiss="alert"><{"x"}></button>
   }
 }

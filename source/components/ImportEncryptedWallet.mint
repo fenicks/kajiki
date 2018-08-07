@@ -1,45 +1,36 @@
-record ImportEncrypted.State {
-  file : Maybe(File),
-  contents : String,
-  error : String
-}
-
 component ImportEncryptedWallet {
   connect WalletStore exposing { currentWallet, storeWallet }
 
-  state : ImportEncrypted.State {
-    file = Maybe.nothing(),
-    contents = "",
-    error = ""
-  }
+  state file : Maybe(File) = Maybe.nothing()
+  state contents : String = ""
+  state error : String = ""
 
   fun openDialog : Void {
     do {
-      file =
+      theFile =
         File.select("application/json")
 
-      contents =
-        File.readAsString(file)
+      theContents =
+        File.readAsString(theFile)
 
       next
-        { state |
-          contents = contents,
-          file = Maybe.just(file)
+        { contents = theContents,
+          file = Maybe.just(theFile)
         }
 
       json =
-        Json.parse(state.contents)
+        Json.parse(theContents)
 
       decoded =
         json
         |> Maybe.toResult("could not decode imported json wallet")
-        |> Result.map(\o : Object => decode o as EncryptedWallet)
+        |> Result.map((o : Object) : Result(Object.Error, EncryptedWallet) => { decode o as EncryptedWallet })
 
       encryptedWallet =
         decoded
 
       fileInfo =
-        state.file
+        file
         |> Maybe.toResult("cannot get uploaded file name")
 
       fileName =
@@ -55,13 +46,12 @@ component ImportEncryptedWallet {
       if (walletWithName.source == "kajiki") {
         do {
           storeWallet(walletWithName)
-          next { state | error = "" }
+          next { error = "" }
           Window.navigate("/dashboard")
         }
       } else {
         next
-          { state |
-            error =
+          { error =
               "This wallet is from the Sushi client and cannot be uploa" \
               "ded. If you want to upload this wallet you must first de" \
               "crypt it with the Sushi client and then use the import u" \
@@ -69,18 +59,18 @@ component ImportEncryptedWallet {
           }
       }
     } catch String => error {
-      next { state | error = error }
+      next {  error = error }
     } catch Object.Error => error {
-      next { state | error = "This is not a valid Kajiki encrypted wallet file!" }
+      next {  error = "This is not a valid Kajiki encrypted wallet file!" }
     }
   }
 
   get showError : Html {
-    if(String.isEmpty(state.error)){
+    if(String.isEmpty(error)){
       <span/>
     } else {
       <div class="alert alert-danger">
-        <{ state.error }>
+        <{ error }>
       </div>
     }
   }
@@ -104,7 +94,7 @@ component ImportEncryptedWallet {
 
           <button
             class="btn btn-info"
-            onClick={\event : Html.Event => openDialog()}>
+            onClick={(event : Html.Event) : Void => {openDialog()}}>
 
             <{ "Upload an encrypted wallet" }>
 

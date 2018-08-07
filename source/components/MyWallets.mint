@@ -45,7 +45,7 @@ component MyWallets {
 
   fun renderWallet (wallet : WalletItem) : Html {
     <a
-      onClick={\event : Html.Event => setCurrent(wallet, event)}
+      onClick={(event : Html.Event) : Void => { setCurrent(wallet, event) }}
       href=""
       class={"list-group-item list-group-item-action" + active}>
 

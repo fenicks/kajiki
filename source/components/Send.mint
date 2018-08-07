@@ -1,20 +1,16 @@
-record Send.State {
-  amount : String,
-  fee : String,
-  address : String,
-  password : String,
-  showingConfirmation : Bool,
-  error : String,
-  amountError : String
-}
-
 component Send {
   connect WalletStore exposing { currentWallet, currentTransactions, getTransaction, transaction1, error }
 
-  state : Send.State { amount = "", fee = "0.0001", address="", password="", showingConfirmation=false, error="", amountError=""}
+  state amount : String = ""
+  state fee : String = "0.0001"
+  state address : String = ""
+  state password : String = ""
+  state showingConfirmation : Bool = false
+  state sendError : String = ""
+  state amountError : String = ""
 
   fun onAmount (event : Html.Event) : Void {
-    next { state | amount = value, amountError = validateAmount(value) }
+    next { amount = value, amountError = validateAmount(value) }
   } where {
     value = Dom.getValue(event.target)
   }
@@ -36,19 +32,19 @@ component Send {
   }
 
   fun onFee (event : Html.Event) : Void {
-    next { state | fee = Dom.getValue(event.target) }
+    next { fee = Dom.getValue(event.target) }
   }
 
   fun onAddress (event : Html.Event) : Void {
-    next { state | address = Dom.getValue(event.target) }
+    next { address = Dom.getValue(event.target) }
   }
 
   fun onPassword (event : Html.Event) : Void {
-    next { state | password = Dom.getValue(event.target) }
+    next { password = Dom.getValue(event.target) }
   }
 
   fun showConfirmation(event : Html.Event) : Void {
-    next { state | showingConfirmation = true }
+    next { showingConfirmation = true }
   }
 
   fun makeTransaction(event : Html.Event) : Void {
@@ -58,7 +54,7 @@ component Send {
                      |> Maybe.toResult("Error getting sender wallet!")
 
       senderWallet = Common.walletWithNametoWallet(senderWalletWithName.wallet)
-      decryptedWallet = Sushi.Wallet.decryptWallet(senderWallet, state.password)
+      decryptedWallet = Sushi.Wallet.decryptWallet(senderWallet,password)
 
       txn = {
     id = "",
@@ -67,16 +63,16 @@ component Send {
       {
         address = senderWallet.address,
         publicKey = decryptedWallet.publicKey,
-        amount = state.amount,
-        fee = state.fee,
+        amount = amount,
+        fee = fee,
         signr = "0",
         signs = "0"
       }
     ],
     recipients = [
       {
-        address = state.address,
-        amount = state.amount
+        address = address,
+        amount = amount
       }
     ],
     message = "",
@@ -101,18 +97,18 @@ component Send {
     sendSignedTransaction = getTransaction(signedTransaction, true)
 
   } catch String => error {
-    next { state | error = error }
+    next { sendError = error }
   } catch Wallet.Error => error {
     case (error) {
-     Wallet.Error::InvalidNetwork => next { state | error = "There was a wallet error: InvalidNetwork" }
-     Wallet.Error::WalletGenerationError => next { state | error = "There was a wallet error: WalletGenerationError" }
-     Wallet.Error::EncryptWalletError => next { state | error = "There was a wallet error: EncryptWalletError" }
-     Wallet.Error::DecryptWalletError => next { state | error = "There was a wallet error: DecryptWalletError" }
-     Wallet.Error::FromWifWalletError => next { state | error = "There was a wallet error: FromWifWalletError" }
-     Wallet.Error::SigningError => next { state | error = "There was a wallet error: SigningError" }
-     Wallet.Error::InvalidAddressError => next { state | error = "There was a wallet error: InvalidAddressError" }
-     Wallet.Error::AddressLengthError => next { state | error = "There was a wallet error: AddressLengthError" }
-     Wallet.Error::MnemonicGenerationError => next { state | error = "There was a wallet error: MnemonicGenerationError" }
+     Wallet.Error::InvalidNetwork => next { sendError = "There was a wallet error: InvalidNetwork" }
+     Wallet.Error::WalletGenerationError => next { sendError = "There was a wallet error: WalletGenerationError" }
+     Wallet.Error::EncryptWalletError => next {  sendError = "There was a wallet error: EncryptWalletError" }
+     Wallet.Error::DecryptWalletError => next {  sendError = "There was a wallet error: DecryptWalletError" }
+     Wallet.Error::FromWifWalletError => next {  sendError = "There was a wallet error: FromWifWalletError" }
+     Wallet.Error::SigningError => next {  sendError = "There was a wallet error: SigningError" }
+     Wallet.Error::InvalidAddressError => next {  sendError = "There was a wallet error: InvalidAddressError" }
+     Wallet.Error::AddressLengthError => next {  sendError = "There was a wallet error: AddressLengthError" }
+     Wallet.Error::MnemonicGenerationError => next { sendError = "There was a wallet error: MnemonicGenerationError" }
    }
 
   }
@@ -120,8 +116,8 @@ component Send {
 
   fun render : Html {
     <div class="card border-dark mb-3">
-    <div><{state.error}></div>
     <div><{error}></div>
+    <div><{sendError}></div>
       <div class="card-header">
         <{ Common.getCurrentWalletName(currentWallet) }>
       </div>
@@ -131,7 +127,7 @@ component Send {
           <{ "Send tokens" }>
         </h4>
          <{
-           if (state.showingConfirmation) {
+           if (showingConfirmation) {
              renderConfirmation
            } else {
              renderSendForm
@@ -150,15 +146,15 @@ component Send {
        <table class="table table-hover">
        <tr>
          <th ><{"To address: "}></th>
-         <th ><{state.address}></th>
+         <th ><{address}></th>
        </tr>
        <tr>
          <th ><{"Amount: "}></th>
-         <th ><{asNumber(state.amount)}></th>
+         <th ><{asNumber(amount)}></th>
        </tr>
        <tr>
          <th ><{"Fee: "}></th>
-         <th ><{asNumber(state.fee)}></th>
+         <th ><{asNumber(fee)}></th>
        </tr>
        <tr>
          <th ><{"Total: "}></th>
@@ -184,15 +180,15 @@ component Send {
   }
 
   fun calculateTotal : String {
-     (fee + amount)
+     (theFee + theAmount)
      |> Number.toFixed(8)
   } where {
-    fee = Number.fromString(state.fee) |> Maybe.withDefault(0)
-    amount = Number.fromString(state.amount) |> Maybe.withDefault(0)
+    theFee = Number.fromString(fee) |> Maybe.withDefault(0)
+    theAmount = Number.fromString(amount) |> Maybe.withDefault(0)
   }
 
   fun goBack(event : Html.Event) : Void {
-    next { state | showingConfirmation = false}
+    next { showingConfirmation = false}
   }
 
   fun asNumber(value : String) : String {
@@ -202,7 +198,7 @@ component Send {
   }
 
   get createButtonState : Bool {
-    (String.isEmpty(state.amount) || String.isEmpty(state.password))
+    (String.isEmpty(amount) || String.isEmpty(password))
   }
 
   get renderSendForm : Html {
@@ -214,13 +210,13 @@ component Send {
 
         <input
           onInput={onAmount}
-          value={state.amount}
+          value={amount}
           type="text"
           class="form-control"
           id="amount"
           aria-describedby="amount"
           placeholder="Enter an amount"/>
-      <LocalError error={state.amountError}/>
+      <LocalError error={amountError}/>
       </div>
 
       <div class="form-group">
@@ -234,7 +230,7 @@ component Send {
           class="form-control"
           id="fee"
           aria-describedby="fee"
-          value={state.fee}
+          value={fee}
           placeholder="Enter a fee"/>
 
         <small
@@ -253,7 +249,7 @@ component Send {
 
         <input
           onInput={onAddress}
-          value={state.address}
+          value={address}
           type="text"
           class="form-control"
           id="address"
@@ -268,7 +264,7 @@ component Send {
 
         <input
           onInput={onPassword}
-          value={state.password}
+          value={password}
           type="password"
           class="form-control"
           id="password"

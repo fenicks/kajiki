@@ -1,12 +1,3 @@
-record CreateEncryptedWallet.State {
-  name : String,
-  password : String,
-  repeatPassword : String,
-  passwordStrength : PasswordStrength,
-  showPassword : Bool,
-  showRepeatPassword : Bool
-}
-
 record PasswordStrength {
   score : Number,
   warning : String,
@@ -39,19 +30,16 @@ component CreateEncryptedWallet {
   property importOnly : Bool = false
   property importedWallet : Maybe(Wallet) = Maybe.nothing()
 
-  state : CreateEncryptedWallet.State {
-    name = "",
-    password = "",
-    repeatPassword = "",
-    passwordStrength =
-      {
-        score = -1,
-        warning = "",
-        suggestions = []
-      },
-    showPassword = false,
-    showRepeatPassword = false
-  }
+  state name : String = ""
+  state password : String = ""
+  state repeatPassword : String = ""
+  state passwordStrength : PasswordStrength =   {
+      score = -1,
+      warning = "",
+      suggestions = []
+    }
+  state showPassword : Bool = false
+  state showRepeatPassword : Bool = false
 
   style spacer {
     padding-left: 10px;
@@ -70,7 +58,7 @@ component CreateEncryptedWallet {
   }
 
   fun onName (event : Html.Event) : Void {
-    next { state | name = Dom.getValue(event.target) }
+    next { name = Dom.getValue(event.target) }
   }
 
   fun getPasswordStrength (password : String) : Result(PasswordStrength.Error, PasswordStrength) {
@@ -96,8 +84,7 @@ component CreateEncryptedWallet {
 
       if (String.isEmpty(password)) {
         next
-          { state |
-            password = password,
+          { password = password,
             passwordStrength =
               {
                 score = -1,
@@ -107,16 +94,14 @@ component CreateEncryptedWallet {
           }
       } else {
         next
-          { state |
-            password = password,
+          { password = password,
             passwordStrength = strength
           }
       }
     } catch PasswordStrength.Error => error {
       do {
         next
-          { state |
-            passwordStrength =
+          { passwordStrength =
               {
                 score = -1,
                 warning = "",
@@ -130,15 +115,15 @@ component CreateEncryptedWallet {
   }
 
   fun onRepeatPasssword (event : Html.Event) : Void {
-    next { state | repeatPassword = Dom.getValue(event.target) }
+    next { repeatPassword = Dom.getValue(event.target) }
   }
 
   fun togglePasswordVisibility (event : Html.Event) : Void {
-    next { state | showPassword = !state.showPassword }
+    next { showPassword = !showPassword }
   }
 
   fun toggleRepeatPasswordVisibility (event : Html.Event) : Void {
-    next { state | showRepeatPassword = !state.showRepeatPassword }
+    next { showRepeatPassword = !showRepeatPassword }
   }
 
   fun createOrImportWallet (event : Html.Event) : Void {
@@ -152,11 +137,11 @@ component CreateEncryptedWallet {
   fun storeAsEncryptedWithName (wallet : Wallet) : Void {
     do {
       encrypted =
-        Sushi.Wallet.encryptWallet(wallet, state.password)
+        Sushi.Wallet.encryptWallet(wallet, password)
 
       encryptedWithName =
         {
-          name = state.name,
+          name = name,
           source = encrypted.source,
           ciphertext = encrypted.ciphertext,
           address = encrypted.address,
@@ -239,7 +224,7 @@ component CreateEncryptedWallet {
   get showPasswordStrength : Html {
     try {
       strength =
-        state.passwordStrength
+        passwordStrength
 
       score =
         Number.toString(strength.score)
@@ -280,13 +265,13 @@ component CreateEncryptedWallet {
   }
 
   get passwordsNotMatchingAlert : Html {
-    if (String.isEmpty(state.password) && String.isEmpty(state.repeatPassword)) {
+    if (String.isEmpty(password) && String.isEmpty(repeatPassword)) {
       <div/>
     } else {
-      if (state.password == state.repeatPassword) {
+      if (password == repeatPassword) {
         <div/>
       } else {
-        if (String.isEmpty(state.repeatPassword) || String.isEmpty(state.password)) {
+        if (String.isEmpty(repeatPassword) || String.isEmpty(password)) {
           <div/>
         } else {
           <div::height>
@@ -303,7 +288,7 @@ component CreateEncryptedWallet {
   }
 
   get createButtonState : Bool {
-    (String.isEmpty(state.name) || String.isEmpty(state.password) || String.isEmpty(state.repeatPassword)) || (state.password != state.repeatPassword)
+    (String.isEmpty(name) || String.isEmpty(password) || String.isEmpty(repeatPassword)) || (password != repeatPassword)
   }
 
   fun checkMark (colour : String, icon : String) : Html {
@@ -319,13 +304,13 @@ component CreateEncryptedWallet {
   }
 
   get checkIndicator : Html {
-    if (String.isEmpty(state.password) && String.isEmpty(state.repeatPassword)) {
+    if (String.isEmpty(password) && String.isEmpty(repeatPassword)) {
       <div/>
     } else {
-      if (state.password == state.repeatPassword) {
+      if (password == repeatPassword) {
         checkMark("success", "check")
       } else {
-        if (String.isEmpty(state.repeatPassword) || String.isEmpty(state.password)) {
+        if (String.isEmpty(repeatPassword) || String.isEmpty(password)) {
           <div/>
         } else {
           checkMark("danger", "times")
@@ -335,7 +320,7 @@ component CreateEncryptedWallet {
   }
 
   get passwordType : String {
-    if (state.showPassword) {
+    if (showPassword) {
       "text"
     } else {
       "password"
@@ -343,7 +328,7 @@ component CreateEncryptedWallet {
   }
 
   get repeatPasswordType : String {
-    if (state.showRepeatPassword) {
+    if (showRepeatPassword) {
       "text"
     } else {
       "password"
@@ -351,7 +336,7 @@ component CreateEncryptedWallet {
   }
 
   get passwordEye : String {
-    if (state.showPassword) {
+    if (showPassword) {
       "eye-slash"
     } else {
       "eye"
@@ -359,7 +344,7 @@ component CreateEncryptedWallet {
   }
 
   get repeatPasswordEye : String {
-    if (state.showRepeatPassword) {
+    if (showRepeatPassword) {
       "eye-slash"
     } else {
       "eye"

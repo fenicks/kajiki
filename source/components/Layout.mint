@@ -1,5 +1,4 @@
 component Layout {
-  connect Ui exposing { theme }
 
   property children : Array(Html) = []
 

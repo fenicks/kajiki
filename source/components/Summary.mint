@@ -21,7 +21,7 @@ component Summary {
   } where {
     balances =
       currentWallet
-      |> Maybe.map(\c : CurrentWallet => c.balances)
+      |> Maybe.map((c : CurrentWallet) : Array(TokenPair) => { c.balances })
       |> Maybe.withDefault([])
   }
 
@@ -56,12 +56,12 @@ component Summary {
   } where {
     tokenBalances =
       balances
-      |> Array.reject(\i : TokenPair => (i.token == "SUSHI" || i.amount == "0"))
+      |> Array.reject((i : TokenPair) : Bool => { (i.token == "SUSHI" || i.amount == "0")})
   }
 
   fun renderBalances (pairs : Array(TokenPair)) : Array(Html) {
     pairs
-    |> Array.reject(\i : TokenPair => (i.token == "SUSHI" || i.amount == "0"))
+    |> Array.reject((i : TokenPair) : Bool => {(i.token == "SUSHI" || i.amount == "0")})
     |> Array.map(renderBalance)
   }
 
@@ -94,7 +94,7 @@ component Summary {
   } where {
     balance =
       pairs
-      |> Array.select(\i : TokenPair => i.token == "SUSHI")
+      |> Array.select((i : TokenPair) : Bool => {i.token == "SUSHI"})
       |> Array.firstWithDefault({
         token = "SUSHI",
         amount = "0"

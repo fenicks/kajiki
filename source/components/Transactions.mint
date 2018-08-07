@@ -78,13 +78,13 @@ component Transactions {
   fun getTransactionAmountForAddress(transaction : Kajiki.Transaction) : String {
     try{
       address = currentWallet
-                |> Maybe.map(\w : CurrentWallet => w.wallet.address)
+                |> Maybe.map((w : CurrentWallet) : String => { w.wallet.address} )
                 |> Maybe.withDefault("")
 
       total = transaction.recipients
-                   |> Array.select(\r : Kajiki.Recipient => r.address == address)
-                   |> Array.map(\r : Kajiki.Recipient => r.amount)
-                   |> sum(\a : Number, b : Number => a + b)
+                   |> Array.select((r : Kajiki.Recipient) : Bool => { r.address == address })
+                   |> Array.map((r : Kajiki.Recipient) : Number => { r.amount })
+                   |> sum((a : Number, b : Number) : Number => { a + b })
 
       Number.toString(total / 100000000)
     }
