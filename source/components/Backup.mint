@@ -4,10 +4,13 @@ component Backup {
 
   fun downloadWallet(event : Html.Event) : Void {
     do {
-      walletWithName = currentWallet |> Maybe.toResult("")
-      wallet = Common.walletWithNametoWallet(walletWithName.wallet)
+      walletWithName = currentWallet
+      |> Maybe.map((cw : CurrentWallet) : EncryptedWalletWithName => { cw.wallet } )
+      |> Maybe.toResult("")
+
+      wallet = Common.walletWithNametoWallet(walletWithName)
       walletJson = Json.stringify(encode wallet)
-      name = (walletWithName.wallet.name
+      name = (walletWithName.name
               |> String.split(" ")
               |> String.join("-")) + ".json"
 

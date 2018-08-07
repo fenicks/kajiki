@@ -62,7 +62,7 @@ module Common {
     }
   }
 
-  fun toKajikiRecipient (r : Recipient) : Kajiki.Recipient {
+  fun toKajikiRecipient (r : Recipient) : KajikiRecipient {
     {
       address = r.address,
       amount =
@@ -71,7 +71,7 @@ module Common {
     }
   }
 
-  fun toKajikiSender (s : Sender) : Kajiki.Sender {
+  fun toKajikiSender (s : Sender) : KajikiSender {
     {
       address = s.address,
       publicKey = s.publicKey,
@@ -86,7 +86,7 @@ module Common {
     }
   }
 
-  fun toSender (s : Kajiki.Sender) : Sender {
+  fun toSender (s : KajikiSender) : Sender {
     {
       address = s.address,
       publicKey = s.publicKey,
@@ -97,14 +97,14 @@ module Common {
     }
   }
 
-  fun toRecipient (r : Kajiki.Recipient) : Recipient {
+  fun toRecipient (r : KajikiRecipient) : Recipient {
     {
       address = r.address,
       amount = Number.toString(r.amount)
     }
   }
 
-  fun kajikiTransactionToTransaction (kt : Kajiki.Transaction) : Transaction {
+  fun kajikiTransactionToTransaction (kt : KajikiTransaction) : Transaction {
     try {
       getSenders =
         kt.senders

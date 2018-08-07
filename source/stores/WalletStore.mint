@@ -25,16 +25,28 @@ record CurrentWallet {
 }
 
 record AddressTransactionsResponse {
-  result : Array(Kajiki.Transaction),
+  result : Array(KajikiTransaction),
   status : String
+}
+
+record KajikiTransaction {
+  id : String,
+  action : String,
+  senders : Array(KajikiSender),
+  recipients : Array(KajikiRecipient),
+  message : String,
+  token : String,
+  prevHash : String using "prev_hash",
+  timestamp : Number,
+  scaled : Number
 }
 
 record TransactionResponse {
-  result : Kajiki.Transaction,
+  result : KajikiTransaction,
   status : String
 }
 
-record Kajiki.Sender {
+record KajikiSender {
   address : String,
   publicKey : String using "public_key",
   amount : Number,
@@ -43,21 +55,9 @@ record Kajiki.Sender {
   signs : String using "sign_s"
 }
 
-record Kajiki.Recipient {
+record KajikiRecipient {
   address : String,
   amount : Number
-}
-
-record Kajiki.Transaction {
-  id : String,
-  action : String,
-  senders : Array(Kajiki.Sender),
-  recipients : Array(Kajiki.Recipient),
-  message : String,
-  token : String,
-  prevHash : String using "prev_hash",
-  timestamp : Number,
-  scaled : Number
 }
 
 module Target.Network {
@@ -91,9 +91,9 @@ store WalletStore {
   state error : String = ""
   state currentWalletAddress : Maybe(String) = Maybe.nothing()
   state currentWallet : Maybe(CurrentWallet) = Maybe.nothing()
-  state currentTransactions : Array(Kajiki.Transaction) = []
+  state currentTransactions : Array(KajikiTransaction) = []
   state config : Config = { network = Target.Network.testNet() }
-  state transaction1 : Maybe(Kajiki.Transaction) = Maybe.nothing()
+  state transaction1 : Maybe(KajikiTransaction) = Maybe.nothing()
 
   fun setError (value : String) : Void {
     next { error = value }
@@ -174,7 +174,7 @@ store WalletStore {
       ])
   }
 
-  fun encodeKajikiSender (sender : Kajiki.Sender) : Object {
+  fun encodeKajikiSender (sender : KajikiSender) : Object {
     Object.Encode.object(
       [
         Object.Encode.field(
@@ -196,7 +196,7 @@ store WalletStore {
       ])
   }
 
-  fun encodeKajikiRecipient (r : Kajiki.Recipient) : Object {
+  fun encodeKajikiRecipient (r : KajikiRecipient) : Object {
     Object.Encode.object(
       [
         Object.Encode.field(
@@ -211,7 +211,7 @@ store WalletStore {
     |> Array.map(encodeSender)
   }
 
-  fun encodeKajikiSenders (senders : Array(Kajiki.Sender)) : Array(Object) {
+  fun encodeKajikiSenders (senders : Array(KajikiSender)) : Array(Object) {
     senders
     |> Array.map(encodeKajikiSender)
   }
@@ -221,7 +221,7 @@ store WalletStore {
     |> Array.map(encodeRecipient)
   }
 
-  fun encodeKajikiRecipients (recipients : Array(Kajiki.Recipient)) : Array(Object) {
+  fun encodeKajikiRecipients (recipients : Array(KajikiRecipient)) : Array(Object) {
     recipients
     |> Array.map(encodeKajikiRecipient)
   }
@@ -344,13 +344,8 @@ store WalletStore {
         Json.parse(response.body)
         |> Maybe.toResult("Json paring error")
 
-
-       Debug.log(json)
-
       item =
         decode json as AddressTransactionsResponse
-
-
 
       next { currentTransactions = item.result }
     } catch Http.ErrorResponse => error {

@@ -1,12 +1,12 @@
 record GroupedTransaction {
   date : String,
-  transactions : Array(Kajiki.Transaction)
+  transactions : Array(KajikiTransaction)
 }
 
 component Transactions {
    connect WalletStore exposing { currentWallet, currentTransactions }
 
-  fun aggregateTransactions (transactions : Array(Kajiki.Transaction)) : Array(GroupedTransaction) {
+  fun aggregateTransactions (transactions : Array(KajikiTransaction)) : Array(GroupedTransaction) {
     `
     (() => {
       var result = [];
@@ -54,7 +54,7 @@ component Transactions {
    </div>
   }
 
-  fun renderTransaction (transaction : Kajiki.Transaction) : Html {
+  fun renderTransaction (transaction : KajikiTransaction) : Html {
     <div>
       <div class="card">
         <div class="card-body">
@@ -75,22 +75,22 @@ component Transactions {
     dateTime = getDateTimeForTransaction(transaction)
   }
 
-  fun getTransactionAmountForAddress(transaction : Kajiki.Transaction) : String {
+  fun getTransactionAmountForAddress(transaction : KajikiTransaction) : String {
     try{
       address = currentWallet
                 |> Maybe.map((w : CurrentWallet) : String => { w.wallet.address} )
                 |> Maybe.withDefault("")
 
       total = transaction.recipients
-                   |> Array.select((r : Kajiki.Recipient) : Bool => { r.address == address })
-                   |> Array.map((r : Kajiki.Recipient) : Number => { r.amount })
+                   |> Array.select((r : KajikiRecipient) : Bool => { r.address == address })
+                   |> Array.map((r : KajikiRecipient) : Number => { r.amount })
                    |> sum((a : Number, b : Number) : Number => { a + b })
 
       Number.toString(total / 100000000)
     }
   }
 
-  fun getDateTimeForTransaction(transaction: Kajiki.Transaction) : String {
+  fun getDateTimeForTransaction(transaction: KajikiTransaction) : String {
      try {
        millis = (transaction.timestamp * 1000)
        `new Date(millis).toString()`

@@ -51,9 +51,11 @@ component Send {
     do {
 
       senderWalletWithName = currentWallet
+                     |> Maybe.map((cw : CurrentWallet) : EncryptedWalletWithName => { cw.wallet } )
                      |> Maybe.toResult("Error getting sender wallet!")
 
-      senderWallet = Common.walletWithNametoWallet(senderWalletWithName.wallet)
+
+      senderWallet = Common.walletWithNametoWallet(senderWalletWithName)
       decryptedWallet = Sushi.Wallet.decryptWallet(senderWallet,password)
 
       txn = {
