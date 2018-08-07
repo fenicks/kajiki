@@ -55,7 +55,7 @@ record Kajiki.Transaction {
   recipients : Array(Kajiki.Recipient),
   message : String,
   token : String,
-  prevHash : String,
+  prevHash : String using "prev_hash",
   timestamp : Number,
   scaled : Number
 }
