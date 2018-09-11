@@ -5,8 +5,8 @@ component ImportEncryptedWallet {
   state contents : String = ""
   state error : String = ""
 
-  fun openDialog : Void {
-    do {
+  fun openDialog : Promise(Never, Void) {
+    sequence {
       theFile =
         File.select("application/json")
 
@@ -44,7 +44,7 @@ component ImportEncryptedWallet {
         Common.walletToWalletWithName(encryptedWallet, fileName)
 
       if (walletWithName.source == "kajiki") {
-        do {
+        sequence {
           storeWallet(walletWithName)
           next { error = "" }
           Window.navigate("/dashboard")
@@ -58,9 +58,9 @@ component ImportEncryptedWallet {
               "nencrypted wallet option"
           }
       }
-    } catch String => error {
-      next {  error = error }
-    } catch Object.Error => error {
+    } catch String => er {
+      next {  error = er }
+    } catch Object.Error => er {
       next {  error = "This is not a valid Kajiki encrypted wallet file!" }
     }
   }
@@ -94,7 +94,7 @@ component ImportEncryptedWallet {
 
           <button
             class="btn btn-info"
-            onClick={(event : Html.Event) : Void => {openDialog()}}>
+            onClick={(event : Html.Event) : Promise(Never, Void) => {openDialog()}}>
 
             <{ "Upload an encrypted wallet" }>
 

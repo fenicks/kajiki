@@ -2,8 +2,8 @@ component Backup {
 
   connect WalletStore exposing { currentWallet }
 
-  fun downloadWallet(event : Html.Event) : Void {
-    do {
+  fun downloadWallet(event : Html.Event) : Promise(Never, Void) {
+    sequence {
       walletWithName = currentWallet
       |> Maybe.map((cw : CurrentWallet) : EncryptedWalletWithName => { cw.wallet } )
       |> Maybe.toResult("")
@@ -16,7 +16,7 @@ component Backup {
 
       `saveAs(new Blob([walletJson], {type: "application/json;charset=utf-8"}), name);`
     } catch String => error {
-      void
+      Promise.never()
     }
   }
 

@@ -57,7 +57,7 @@ component CreateEncryptedWallet {
     cursor: pointer;
   }
 
-  fun onName (event : Html.Event) : Void {
+  fun onName (event : Html.Event) : Promise(Never, Void) {
     next { name = Dom.getValue(event.target) }
   }
 
@@ -74,17 +74,17 @@ component CreateEncryptedWallet {
     `
   }
 
-  fun onPassword (event : Html.Event) : Void {
+  fun onPassword (event : Html.Event) : Promise(Never, Void) {
     try {
-      password =
+      pass =
         Dom.getValue(event.target)
 
       strength =
-        getPasswordStrength(password)
+        getPasswordStrength(pass)
 
-      if (String.isEmpty(password)) {
+      if (String.isEmpty(pass)) {
         next
-          { password = password,
+          { password = pass,
             passwordStrength =
               {
                 score = -1,
@@ -94,12 +94,12 @@ component CreateEncryptedWallet {
           }
       } else {
         next
-          { password = password,
+          { password = pass,
             passwordStrength = strength
           }
       }
     } catch PasswordStrength.Error => error {
-      do {
+      sequence {
         next
           { passwordStrength =
               {
@@ -114,19 +114,19 @@ component CreateEncryptedWallet {
     }
   }
 
-  fun onRepeatPasssword (event : Html.Event) : Void {
+  fun onRepeatPasssword (event : Html.Event) : Promise(Never, Void) {
     next { repeatPassword = Dom.getValue(event.target) }
   }
 
-  fun togglePasswordVisibility (event : Html.Event) : Void {
+  fun togglePasswordVisibility (event : Html.Event) : Promise(Never, Void) {
     next { showPassword = !showPassword }
   }
 
-  fun toggleRepeatPasswordVisibility (event : Html.Event) : Void {
+  fun toggleRepeatPasswordVisibility (event : Html.Event) : Promise(Never, Void) {
     next { showRepeatPassword = !showRepeatPassword }
   }
 
-  fun createOrImportWallet (event : Html.Event) : Void {
+  fun createOrImportWallet (event : Html.Event) : Promise(Never, Void) {
     if (importOnly) {
       importWallet
     } else {
@@ -134,8 +134,8 @@ component CreateEncryptedWallet {
     }
   }
 
-  fun storeAsEncryptedWithName (wallet : Wallet) : Void {
-    do {
+  fun storeAsEncryptedWithName (wallet : Wallet) : Promise(Never, Void) {
+    sequence {
       encrypted =
         Sushi.Wallet.encryptWallet(wallet, password)
 
@@ -158,7 +158,7 @@ component CreateEncryptedWallet {
     }
   }
 
-  get importWallet : Void {
+  get importWallet : Promise(Never, Void) {
     try {
       wallet =
         importedWallet
@@ -170,7 +170,7 @@ component CreateEncryptedWallet {
     }
   }
 
-  get createWallet : Void {
+  get createWallet : Promise(Never, Void) {
     try {
       wallet =
         Sushi.Wallet.generateNewWallet(Network.Prefix.testNet())
@@ -351,8 +351,8 @@ component CreateEncryptedWallet {
     }
   }
 
-  fun cancel (event : Html.Event) : Void {
-    do {
+  fun cancel (event : Html.Event) : Promise(Never, Void) {
+    sequence {
       setReadyToImport(false)
       Window.navigate(cancelUrl)
     }

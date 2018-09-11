@@ -7,21 +7,21 @@ component ImportUnencryptedWallet {
   state error : String = ""
   state wallet : Maybe(Wallet) = Maybe.nothing()
 
-  fun componentDidMount() : Void {
+  fun componentDidMount : Promise(Never, Void) {
     setReadyToImport(false)
   }
 
-  fun openDialog : Void {
-    do {
-      file =
+  fun openDialog : Promise(Never, Void) {
+    sequence {
+      f =
         File.select("application/json")
 
-      contents =
-        File.readAsString(file)
+      c =
+        File.readAsString(f)
 
       next
-        { contents = contents,
-          file = Maybe.just(file)
+        { contents = c,
+          file = Maybe.just(f)
         }
 
       p1 =
@@ -30,7 +30,7 @@ component ImportUnencryptedWallet {
       `Promise.all(p1)`
 
       json =
-        Json.parse(contents)
+        Json.parse(c)
 
        Debug.log(json)
 
@@ -39,19 +39,21 @@ component ImportUnencryptedWallet {
         |> Maybe.toResult("could not decode imported json wallet")
         |> Result.map((o : Object) : Result(Object.Error, Wallet) => { decode o as Wallet })
 
-      wallet =
+      w =
         decoded
 
-      next { wallet = Maybe.just(wallet), error= "" }
-    } catch String => error {
-      do {
-        next { error = error }
+      next { wallet = Maybe.just(w), error= "" }
+    } catch String => er {
+      sequence {
+        next { error = er }
         setReadyToImport(false)
+        Promise.never()
       }
-    } catch Object.Error => error {
-      do {
+    } catch Object.Error => er {
+      sequence {
       next { error = "This is not a valid unencrypted wallet file!" }
       setReadyToImport(false)
+      Promise.never()
       }
     }
   }
@@ -74,7 +76,7 @@ component ImportUnencryptedWallet {
 
       <button
         class="btn btn-info"
-        onClick={(event : Html.Event) : Void => { openDialog() }}>
+        onClick={(event : Html.Event) : Promise(Never, Void) => { openDialog() }}>
 
         <{ "Upload an unencrypted wallet" }>
 

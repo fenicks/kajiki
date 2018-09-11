@@ -1,8 +1,8 @@
 component ChooseNetwork {
   connect WalletStore exposing { getWallets, getWalletItems, setNetwork, getNetwork, getConfig, refreshWalletItems, getCurrentWallet, getCurrentTransactions }
 
-  fun onChangeNetwork (event : Html.Event) : Void {
-    do {
+  fun onChangeNetwork (event : Html.Event) : Promise(Never, Void) {
+    sequence {
       setNetwork(network)
       getConfig
       p1 =

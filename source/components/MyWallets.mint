@@ -12,13 +12,14 @@ component MyWallets {
     getConfig
   }
 
-  fun componentDidMount : Void {
-    do {
+  fun componentDidMount : Promise(Never, Void) {
+    sequence {
        getWallets
        getWalletItems
        getConfig
        getCurrentWallet
        getCurrentTransactions
+       Promise.never()
     }
   }
 
@@ -29,6 +30,7 @@ component MyWallets {
       refreshWalletItems
       getCurrentWallet
       getCurrentTransactions
+      void
     }
   }
 

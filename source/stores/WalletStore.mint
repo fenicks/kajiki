@@ -95,25 +95,26 @@ store WalletStore {
   state config : Config = { network = Target.Network.testNet() }
   state transaction1 : Maybe(KajikiTransaction) = Maybe.nothing()
 
-  fun setError (value : String) : Void {
+  fun setError (value : String) : Promise(Never, Void) {
     next { error = value }
   }
 
-  fun clearError() : Void {
+  fun clearError : Promise(Never, Void) {
     next { error = ""}
   }
 
-  fun getError() : String {
+  fun getError : String {
     error
   }
 
-  fun setNetwork (network : TargetNetwork) : Void {
-    do {
+  fun setNetwork (network : TargetNetwork) : Promise(Never, Void) {
+    sequence {
       updatedConfig =
         { network = network }
 
       updateConfig(updatedConfig)
-    } catch Storage.Error => error {
+      Promise.never()
+    } catch Storage.Error => err {
       next { error = "could not set config: network type" }
     }
   }
@@ -124,7 +125,7 @@ store WalletStore {
     }
   }
 
-  fun setCurrentAddress (address : String) : Void {
+  fun setCurrentAddress (address : String) : Promise(Never, Void) {
     next { currentWalletAddress = Maybe.just(address) }
   }
 
@@ -226,8 +227,8 @@ store WalletStore {
     |> Array.map(encodeKajikiRecipient)
   }
 
-  fun getTransaction (transaction : Transaction, signed : Bool) : Void {
-    do {
+  fun getTransaction (transaction : Transaction, signed : Bool) : Promise(Never, Void) {
+    sequence {
       senders =
         if (signed) {
           encodeKajikiSenders(
@@ -308,11 +309,11 @@ store WalletStore {
         item.result
 
       next {transaction1 = Maybe.just(txn) }
-    } catch Http.ErrorResponse => error {
+    } catch Http.ErrorResponse => er {
       next { error = "Could not retrieve remote wallet information" }
-    } catch String => error {
+    } catch String => er {
       next { error = "Could not parse json response" }
-    } catch Object.Error => error {
+    } catch Object.Error => er {
       next { error = "could not decode json" }
     }
   }
@@ -333,8 +334,8 @@ store WalletStore {
     }
   }
 
-  get getCurrentTransactions : Void {
-    do {
+  get getCurrentTransactions : Promise(Never, Void) {
+    sequence {
       response =
         Http.get(
           getNetwork.url + "/api/v1/address/" + currentWalletAddressOrFirst + "/transactions")
@@ -348,17 +349,17 @@ store WalletStore {
         decode json as AddressTransactionsResponse
 
       next { currentTransactions = item.result }
-    } catch Http.ErrorResponse => error {
+    } catch Http.ErrorResponse => er {
       next { error = "Could not retrieve wallet transactions" }
-    } catch String => error {
+    } catch String => er {
       next { error = "Could not parse json response" }
-    } catch Object.Error => error {
+    } catch Object.Error => er {
       next { error = "could not decode json" }
     }
   }
 
-  get getCurrentWallet : Void {
-    do {
+  get getCurrentWallet : Promise(Never, Void) {
+    sequence {
       response =
         Http.get(
           getNetwork.url + "/api/v1/address/" + currentWalletAddressOrFirst)
@@ -387,17 +388,17 @@ store WalletStore {
         }
 
       next {currentWallet = Maybe.just(cw) }
-    } catch Http.ErrorResponse => error {
+    } catch Http.ErrorResponse => er {
       next {error = "Could not retrieve remote wallet information" }
-    } catch String => error {
+    } catch String => er {
       next {error = "Could not parse json response" }
-    } catch Object.Error => error {
+    } catch Object.Error => er {
       next { error = "could not decode json" }
     }
   }
 
-  fun getWalletBalance (w : EncryptedWalletWithName) : Void {
-    do {
+  fun getWalletBalance (w : EncryptedWalletWithName) : Promise(Never, Void) {
+    sequence {
       response =
         Http.get(
           getNetwork.url + "/api/v1/address/" + w.address + "/token/SUSHI")
@@ -426,11 +427,11 @@ store WalletStore {
         }
 
       next { walletItems = replaceItem(walletInfo) }
-    } catch Http.ErrorResponse => error {
+    } catch Http.ErrorResponse => er {
       next { error = "Could not retrieve remote wallet information" }
-    } catch String => error {
+    } catch String => er {
       next { error = "Could not parse json response" }
-    } catch Object.Error => error {
+    } catch Object.Error => er {
       next { error = "could not decode json" }
     }
   }
@@ -457,8 +458,8 @@ store WalletStore {
     }
   }
 
-  get getWalletItems : Void {
-    do {
+  get getWalletItems : Promise(Never, Void) {
+    sequence {
       promises =
         Array.map(getWalletBalance, wallets)
 
@@ -466,15 +467,15 @@ store WalletStore {
     }
   }
 
-  fun storeWallet (encWallet : EncryptedWalletWithName) : Void {
+  fun storeWallet (encWallet : EncryptedWalletWithName) : Promise(Never, Void) {
     try {
       getWallets
 
       if (Array.isEmpty(wallets)) {
-        do {
+        sequence {
           storeFirstWallet(encWallet)
           next { error = "" }
-        } catch Storage.Error => error {
+        } catch Storage.Error => er {
           next { error = "" }
         }
       } else {
@@ -487,10 +488,10 @@ store WalletStore {
           if (alreadyExists) {
             next { error = "A wallet with address: " + encWallet.address + " already exists - so not storing this again." }
           } else {
-            do {
+            sequence {
               appendWallet(encWallet)
               next { error = "" }
-            } catch Storage.Error => error {
+            } catch Storage.Error => er {
               next { error = "" }
             }
           }
@@ -499,8 +500,8 @@ store WalletStore {
     }
   }
 
-  get refreshWalletItems : Void {
-    do {
+  get refreshWalletItems : Promise(Never, Void) {
+    sequence {
       getWalletItems
     }
   }
@@ -539,8 +540,8 @@ store WalletStore {
     }
   }
 
-  get getWallets : Void {
-    do {
+  get getWallets : Promise(Never, Void) {
+    sequence {
       raw =
         Storage.Local.get("kajiki_wallets")
 
@@ -552,12 +553,12 @@ store WalletStore {
         decode object as Array(EncryptedWalletWithName)
 
       next { wallets = theWallets }
-    } catch Object.Error => error {
-      void
-    } catch String => error {
-      void
-    } catch Storage.Error => error {
-      void
+    } catch Object.Error => er {
+      Promise.never()
+    } catch String => er {
+      Promise.never()
+    } catch Storage.Error => er {
+      Promise.never()
     }
   }
 
@@ -573,8 +574,8 @@ store WalletStore {
     }
   }
 
-  get getConfig : Void {
-    do {
+  get getConfig : Promise(Never, Void) {
+    sequence {
       raw =
         Storage.Local.get("kajiki_config")
 
@@ -582,16 +583,16 @@ store WalletStore {
         Json.parse(raw)
         |> Maybe.toResult("Json Parsing Error")
 
-      config =
+      cnfg =
         decode object as Config
 
-      next { config = config }
-    } catch Object.Error => error {
-      void
-    } catch String => error {
-      void
-    } catch Storage.Error => error {
-      void
+      next { config = cnfg }
+    } catch Object.Error => er {
+      Promise.never()
+    } catch String => er {
+      Promise.never()
+    } catch Storage.Error => er {
+      Promise.never()
     }
   }
 }

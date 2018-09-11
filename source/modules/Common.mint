@@ -1,11 +1,11 @@
 module Common {
 
-  fun redirectToAddWallet(wallets : Array(EncryptedWalletWithName)) : Void {
-    do {
+  fun redirectToAddWallet(wallets : Array(EncryptedWalletWithName)) : Promise(Never, Void) {
+    sequence {
       if(Array.isEmpty(wallets)){
         Window.navigate("/add-wallet")
       } else {
-        void
+        Promise.never()
       }
     }
   }

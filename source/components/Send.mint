@@ -9,7 +9,7 @@ component Send {
   state sendError : String = ""
   state amountError : String = ""
 
-  fun onAmount (event : Html.Event) : Void {
+  fun onAmount (event : Html.Event) : Promise(Never, Void) {
     next { amount = value, amountError = validateAmount(value) }
   } where {
     value = Dom.getValue(event.target)
@@ -17,12 +17,12 @@ component Send {
 
   fun validateAmount(value : String) : String {
     try {
-      amount = Number.fromString(value) |> Maybe.withDefault(0)
+      amt = Number.fromString(value) |> Maybe.withDefault(0)
       sushi = Common.getCurrentWalletSushiBalance(currentWallet)
-      if(sushi <= (amount + 0.0001)){
+      if(sushi <= (amt + 0.0001)){
         "You don't have enough SUSHI to send"
       } else {
-        if(amount <= 0){
+        if(amt <= 0){
           "you must supply an amount greater than 0"
         } else {
           ""
@@ -31,24 +31,24 @@ component Send {
     }
   }
 
-  fun onFee (event : Html.Event) : Void {
+  fun onFee (event : Html.Event) : Promise(Never, Void) {
     next { fee = Dom.getValue(event.target) }
   }
 
-  fun onAddress (event : Html.Event) : Void {
+  fun onAddress (event : Html.Event) : Promise(Never, Void) {
     next { address = Dom.getValue(event.target) }
   }
 
-  fun onPassword (event : Html.Event) : Void {
+  fun onPassword (event : Html.Event) : Promise(Never, Void) {
     next { password = Dom.getValue(event.target) }
   }
 
-  fun showConfirmation(event : Html.Event) : Void {
+  fun showConfirmation(event : Html.Event) : Promise(Never, Void) {
     next { showingConfirmation = true }
   }
 
-  fun makeTransaction(event : Html.Event) : Void {
-    do {
+  fun makeTransaction(event : Html.Event) : Promise(Never, Void) {
+    sequence {
 
       senderWalletWithName = currentWallet
                      |> Maybe.map((cw : CurrentWallet) : EncryptedWalletWithName => { cw.wallet } )
@@ -98,10 +98,10 @@ component Send {
 
     sendSignedTransaction = getTransaction(signedTransaction, true)
 
-  } catch String => error {
-    next { sendError = error }
-  } catch Wallet.Error => error {
-    case (error) {
+  } catch String => er {
+    next { sendError = er }
+  } catch Wallet.Error => er {
+    case (er) {
      Wallet.Error::InvalidNetwork => next { sendError = "There was a wallet error: InvalidNetwork" }
      Wallet.Error::WalletGenerationError => next { sendError = "There was a wallet error: WalletGenerationError" }
      Wallet.Error::EncryptWalletError => next {  sendError = "There was a wallet error: EncryptWalletError" }
@@ -189,7 +189,7 @@ component Send {
     theAmount = Number.fromString(amount) |> Maybe.withDefault(0)
   }
 
-  fun goBack(event : Html.Event) : Void {
+  fun goBack(event : Html.Event) : Promise(Never, Void) {
     next { showingConfirmation = false}
   }
 

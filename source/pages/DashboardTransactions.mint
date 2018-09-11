@@ -2,7 +2,7 @@ component DashboardTransactions {
 
   connect WalletStore exposing { wallets }
 
-  fun componentDidMount : Void {
+  fun componentDidMount : Promise(Never, Void) {
     Common.redirectToAddWallet(wallets)
   }
 
