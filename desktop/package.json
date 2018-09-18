@@ -1,0 +1,18 @@
+{
+  "name": "kajiki-wallet-desktop",
+  "version": "1.0.0",
+  "description": "Kajiki wallet desktop",
+  "main": "app.js",
+  "scripts": {
+    "kajiki-http": "http-server -p 3002",
+    "start": "cpx \"../dist/*\" public -u && electron app.js"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "cpx": "1.5.0",
+    "electron": "^1.4.12",
+    "electron-installer-dmg": "^2.0.0",
+    "electron-packager": "^12.1.2",
+    "http-server": "0.11.1"
+  }
+}

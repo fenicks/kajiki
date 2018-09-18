@@ -1,2 +1,7 @@
 .mint
 dist
+
+# Desktop application
+.DS_Store
+node_modules/
+desktop/public/
